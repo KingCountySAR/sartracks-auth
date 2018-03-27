@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using auth_web.Services;
+using SarData.Auth.Services;
 
-namespace auth_web.Services
+namespace SarData.Auth.Services
 {
     public static class EmailSenderExtensions
     {

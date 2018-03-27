@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using auth_web.Models;
+using SarData.Auth.Models;
 
-namespace auth_web.Controllers
+namespace SarData.Auth.Controllers
 {
     public class HomeController : Controller
     {

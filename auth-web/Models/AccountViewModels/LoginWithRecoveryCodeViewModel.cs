@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace auth_web.Models.AccountViewModels
+namespace SarData.Auth.Models.AccountViewModels
 {
     public class LoginWithRecoveryCodeViewModel
     {

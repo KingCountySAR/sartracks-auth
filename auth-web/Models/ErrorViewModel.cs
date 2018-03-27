@@ -1,6 +1,6 @@
 using System;
 
-namespace auth_web.Models
+namespace SarData.Auth.Models
 {
     public class ErrorViewModel
     {

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 
-namespace auth_web.Models.ManageViewModels
+namespace SarData.Auth.Models.ManageViewModels
 {
     public class ExternalLoginsViewModel
     {

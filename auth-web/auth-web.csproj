@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <UserSecretsId>aspnet-auth_web-02583540-08F0-4A1F-872C-215357989CD6</UserSecretsId>
+    <AssemblyName>SarData.Auth.Web</AssemblyName>
+    <RootNamespace>SarData.Auth</RootNamespace>
   </PropertyGroup>
 
 

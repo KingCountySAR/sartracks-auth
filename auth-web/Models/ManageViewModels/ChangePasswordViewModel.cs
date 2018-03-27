@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace auth_web.Models.ManageViewModels
+namespace SarData.Auth.Models.ManageViewModels
 {
     public class ChangePasswordViewModel
     {

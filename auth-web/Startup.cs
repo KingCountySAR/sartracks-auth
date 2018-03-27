@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using auth_web.Data;
-using auth_web.Models;
-using auth_web.Services;
+using SarData.Auth.Data;
+using SarData.Auth.Models;
+using SarData.Auth.Services;
 
-namespace auth_web
+namespace SarData.Auth
 {
     public class Startup
     {

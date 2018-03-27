@@ -10,11 +10,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using auth_web.Models;
-using auth_web.Models.ManageViewModels;
-using auth_web.Services;
+using SarData.Auth.Models;
+using SarData.Auth.Models.ManageViewModels;
+using SarData.Auth.Services;
 
-namespace auth_web.Controllers
+namespace SarData.Auth.Controllers
 {
     [Authorize]
     [Route("[controller]/[action]")]
@@ -522,7 +522,7 @@ namespace auth_web.Controllers
         {
             return string.Format(
                 AuthenticatorUriFormat,
-                _urlEncoder.Encode("auth_web"),
+                _urlEncoder.Encode("SarData.Auth"),
                 _urlEncoder.Encode(email),
                 unformattedKey);
         }
