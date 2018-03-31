@@ -60,6 +60,7 @@ namespace SarData.Auth
 
       services.AddDbContext<ApplicationDbContext>(options => { configureDbAction(options); });
       services.AddTransient<IPasswordHasher<ApplicationUser>, LegacyPasswordHasher>();
+      services.AddTransient<OidcSeeder>();
 
       services.AddIdentity<ApplicationUser, IdentityRole>()
           .AddUserManager<LinkedMemberUserManager>()
@@ -120,30 +121,30 @@ namespace SarData.Auth
           var database = dbContext.Database;
           if (useMigrations)
           {
+            // Common case - SQL Server, etc
             database.Migrate();
           }
           else
           {
+            // Dev / Sqlite database
             var migrates = database.GetMigrations();
             var creator = database.GetService<IRelationalDatabaseCreator>();
             if (!creator.Exists())
             {
               creator.Create();
               needTables = true;
-              database.ExecuteSqlCommand("CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, \"ProductVersion\" TEXT NOT NULL); ");
+              //database.ExecuteSqlCommand("CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, \"ProductVersion\" TEXT NOT NULL); ");
             }
 
             if (needTables)
             {
-              //string productVersion = database.GetType().Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-              //foreach (var migration in database.GetMigrations())
-              //{
-              //  database.ExecuteSqlCommand($"INSERT INTO __EFMigrationsHistory VALUES('{migration}', '{productVersion}')");
-              //}
               creator.CreateTables();
             }
           }
         }
+
+        var seeder = serviceScope.ServiceProvider.GetRequiredService<OidcSeeder>();
+        seeder.Seed();
       }
 
       Action<IApplicationBuilder> configure = innerApp =>

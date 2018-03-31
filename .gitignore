@@ -9,4 +9,5 @@ dev-store.db
 tempkey.rsa
 appsettings.local.json
 auth-web/members.json
+auth-web/seed-oidc.json
 logs/

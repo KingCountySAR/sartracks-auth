@@ -1,0 +1,35 @@
+﻿{
+  "ApiResources": [
+    {
+      "ApiSecrets": [],
+      "Scopes": [
+        {
+          "Description": null,
+          "DisplayName": "My API",
+          "Emphasize": false,
+          "Name": "api1",
+          "Required": false,
+          "ShowInDiscoveryDocument": true,
+          "UserClaims": []
+        }
+      ],
+      "Enabled": true,
+      "Name": "api1",
+      "DisplayName": "My API",
+      "Description": null,
+      "UserClaims": []
+    }
+  ],
+  "IdentityResources": [],
+  "Clients": [
+    {
+      "AllowedGrantTypes": [ "implicit" ],
+      "AllowedScopes": [ "openid", "profile" ],
+      "ClientId": "sample-mvc",
+      "ClientName": "sample mvc client",
+      "PostLogoutRedirectUris": [ "http://localhost:5501/signout-callback-oidc" ],
+      "RedirectUris": [ "http://localhost:5501/signin-oidc" ],
+      "RequireConsent": false
+    }
+  ]
+}
