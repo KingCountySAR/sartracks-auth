@@ -72,7 +72,14 @@ namespace SarData.Auth
       configueExternalLogins(services.AddAuthentication());
 
       // Add application services.
-      services.AddTransient<IMessagingService, MessagingService>();
+      if (env.IsDevelopment())
+      {
+        services.AddTransient<IMessagingService, TestMessagingService>();
+      }
+      else
+      {
+        services.AddTransient<IMessagingService, MessagingService>();
+      }
 
       services.AddMvc();
 

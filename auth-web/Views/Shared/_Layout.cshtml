@@ -68,6 +68,22 @@
         <script src="~/js/site.min.js" asp-append-version="true"></script>
     </environment>
 
+  <script type="text/javascript">
+    $(document).ready(function () {
+      $('.js-click-disable').on('click', function (event) {
+        var form = $(this).parents('form');
+        var self = this;
+        if (form.valid()) {
+          $(self).append('<i class="fas fa-spinner fa-pulse" style="margin-left: 5px"></i>');
+          window.setTimeout(function () {
+            form.find('button').attr("disabled", "disabled");
+          }, 0);
+        }
+        return true;
+      })
+    })
+
+  </script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -9,6 +9,7 @@ namespace SarData.Auth.Models.AccountViewModels
     public string Email { get; set; }
 
     [Phone]
+    [Display(Name = "Cell Phone")]
     public string Phone { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

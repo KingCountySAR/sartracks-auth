@@ -21,12 +21,12 @@ namespace SarData.Auth.Controllers
   [Route("[controller]/[action]")]
   public class AccountController : Controller
   {
-    private readonly IRemoteMembersService _remoteMembers;
-    private readonly ApplicationDbContext _db;
-    private readonly LinkedMemberUserManager _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IMessagingService _emailSender;
-    private readonly ILogger _logger;
+    private readonly IRemoteMembersService remoteMembers;
+    private readonly ApplicationDbContext db;
+    private readonly LinkedMemberUserManager users;
+    private readonly SignInManager<ApplicationUser> signin;
+    private readonly IMessagingService messaging;
+    private readonly ILogger logger;
 
     public AccountController(
       IRemoteMembersService remoteMembers,
@@ -36,12 +36,12 @@ namespace SarData.Auth.Controllers
         IMessagingService emailSender,
         ILogger<AccountController> logger)
     {
-      _remoteMembers = remoteMembers;
-      _db = db;
-      _userManager = userManager;
-      _signInManager = signInManager;
-      _emailSender = emailSender;
-      _logger = logger;
+      this.remoteMembers = remoteMembers;
+      this.db = db;
+      users = userManager;
+      signin = signInManager;
+      messaging = emailSender;
+      this.logger = logger;
     }
 
     [TempData]
@@ -68,10 +68,10 @@ namespace SarData.Auth.Controllers
       {
         // This doesn't count login failures towards account lockout
         // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, model.RememberMe, lockoutOnFailure: false);
+        var result = await signin.PasswordSignInAsync(model.Username, model.Password, model.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
-          _logger.LogInformation("User logged in.");
+          logger.LogInformation("User logged in.");
           return RedirectToLocal(returnUrl);
         }
         if (result.RequiresTwoFactor)
@@ -80,7 +80,7 @@ namespace SarData.Auth.Controllers
         }
         if (result.IsLockedOut)
         {
-          _logger.LogWarning("User account locked out.");
+          logger.LogWarning("User account locked out.");
           return RedirectToAction(nameof(Lockout));
         }
         else
@@ -99,7 +99,7 @@ namespace SarData.Auth.Controllers
     public async Task<IActionResult> LoginWith2fa(bool rememberMe, string returnUrl = null)
     {
       // Ensure the user has gone through the username & password screen first
-      var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+      var user = await signin.GetTwoFactorAuthenticationUserAsync();
 
       if (user == null)
       {
@@ -122,29 +122,29 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+      var user = await signin.GetTwoFactorAuthenticationUserAsync();
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       var authenticatorCode = model.TwoFactorCode.Replace(" ", string.Empty).Replace("-", string.Empty);
 
-      var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, rememberMe, model.RememberMachine);
+      var result = await signin.TwoFactorAuthenticatorSignInAsync(authenticatorCode, rememberMe, model.RememberMachine);
 
       if (result.Succeeded)
       {
-        _logger.LogInformation("User with ID {UserId} logged in with 2fa.", user.Id);
+        logger.LogInformation("User with ID {UserId} logged in with 2fa.", user.Id);
         return RedirectToLocal(returnUrl);
       }
       else if (result.IsLockedOut)
       {
-        _logger.LogWarning("User with ID {UserId} account locked out.", user.Id);
+        logger.LogWarning("User with ID {UserId} account locked out.", user.Id);
         return RedirectToAction(nameof(Lockout));
       }
       else
       {
-        _logger.LogWarning("Invalid authenticator code entered for user with ID {UserId}.", user.Id);
+        logger.LogWarning("Invalid authenticator code entered for user with ID {UserId}.", user.Id);
         ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
         return View();
       }
@@ -155,7 +155,7 @@ namespace SarData.Auth.Controllers
     public async Task<IActionResult> LoginWithRecoveryCode(string returnUrl = null)
     {
       // Ensure the user has gone through the username & password screen first
-      var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+      var user = await signin.GetTwoFactorAuthenticationUserAsync();
       if (user == null)
       {
         throw new ApplicationException($"Unable to load two-factor authentication user.");
@@ -176,7 +176,7 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+      var user = await signin.GetTwoFactorAuthenticationUserAsync();
       if (user == null)
       {
         throw new ApplicationException($"Unable to load two-factor authentication user.");
@@ -184,21 +184,21 @@ namespace SarData.Auth.Controllers
 
       var recoveryCode = model.RecoveryCode.Replace(" ", string.Empty);
 
-      var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
+      var result = await signin.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
 
       if (result.Succeeded)
       {
-        _logger.LogInformation("User with ID {UserId} logged in with a recovery code.", user.Id);
+        logger.LogInformation("User with ID {UserId} logged in with a recovery code.", user.Id);
         return RedirectToLocal(returnUrl);
       }
       if (result.IsLockedOut)
       {
-        _logger.LogWarning("User with ID {UserId} account locked out.", user.Id);
+        logger.LogWarning("User with ID {UserId} account locked out.", user.Id);
         return RedirectToAction(nameof(Lockout));
       }
       else
       {
-        _logger.LogWarning("Invalid recovery code entered for user with ID {UserId}", user.Id);
+        logger.LogWarning("Invalid recovery code entered for user with ID {UserId}", user.Id);
         ModelState.AddModelError(string.Empty, "Invalid recovery code entered.");
         return View();
       }
@@ -215,8 +215,8 @@ namespace SarData.Auth.Controllers
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-      await _signInManager.SignOutAsync();
-      _logger.LogInformation("User logged out.");
+      await signin.SignOutAsync();
+      logger.LogInformation("User logged out.");
       return RedirectToAction(nameof(HomeController.Index), "Home");
     }
 
@@ -227,7 +227,7 @@ namespace SarData.Auth.Controllers
     {
       // Request a redirect to the external login provider.
       var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Account", new { returnUrl });
-      var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+      var properties = signin.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
       return Challenge(properties, provider);
     }
 
@@ -240,21 +240,22 @@ namespace SarData.Auth.Controllers
         ErrorMessage = $"Error from external provider: {remoteError}";
         return RedirectToAction(nameof(Login));
       }
-      var info = await _signInManager.GetExternalLoginInfoAsync();
+      var info = await signin.GetExternalLoginInfoAsync();
       if (info == null)
       {
         return RedirectToAction(nameof(Login));
       }
 
       // Sign in the user with this external login provider if the user already has a login.
-      var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
+      var result = await signin.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
       if (result.Succeeded)
       {
-        _logger.LogInformation("User logged in with {Name} provider.", info.LoginProvider);
+        logger.LogInformation("User {Name} logged in with {Provider} provider.", User.FindFirstValue(ClaimTypes.Name), info.LoginProvider);
         return RedirectToLocal(returnUrl);
       }
       if (result.IsLockedOut)
       {
+        logger.LogInformation("User {Name} is locked out.", User.FindFirstValue(ClaimTypes.Name));
         return RedirectToAction(nameof(Lockout));
       }
       else
@@ -276,7 +277,7 @@ namespace SarData.Auth.Controllers
       if (ModelState.IsValid)
       {
         // Get the information about the user from the external login provider
-        var info = await _signInManager.GetExternalLoginInfoAsync();
+        var info = await signin.GetExternalLoginInfoAsync();
         if (info == null)
         {
           throw new ApplicationException("Error loading external login information during confirmation.");
@@ -288,11 +289,11 @@ namespace SarData.Auth.Controllers
         List<RemoteMember> members = new List<RemoteMember>();
         if (!string.IsNullOrWhiteSpace(model.Phone))
         {
-          members = await _remoteMembers.FindByPhone(model.Phone);
+          members = await remoteMembers.FindByPhone(model.Phone);
         }
         if (members.Count != 1 && !string.IsNullOrWhiteSpace(model.Email))
         {
-          members = await _remoteMembers.FindByEmail(model.Email);
+          members = await remoteMembers.FindByEmail(model.Email);
         }
 
         if (members.Count != 1)
@@ -301,33 +302,28 @@ namespace SarData.Auth.Controllers
         }
         else
         {
-          var codeRow = await _db.ExternalLoginCodes.FindAsync(info.ProviderKey);
+          var codeRow = await db.ExternalLoginCodes.FindAsync(info.ProviderKey);
           if (codeRow == null)
           {
             codeRow = new ExternalLoginCode { LoginSubject = info.ProviderKey };
-            _db.ExternalLoginCodes.Add(codeRow);
+            db.ExternalLoginCodes.Add(codeRow);
           }
           codeRow.MemberId = members[0].Id;
           codeRow.ExpiresUtc = DateTime.UtcNow.AddMinutes(10);
           codeRow.Code = new Random().Next(1000000).ToString("000000");
-          await _db.SaveChangesAsync();
+          await db.SaveChangesAsync();
 
+          if (!string.IsNullOrWhiteSpace(model.Phone))
+          {
+            await messaging.SendTextAsync(model.Phone, "Your verification code: " + codeRow.Code);
+          }
+          else
+          {
+            await messaging.SendEmailAsync(model.Email, "Verification Code", "Your verificaton code: " + codeRow.Code);
+          }
 
           return View("ExternalVerify");
         }
-        //        var members = await _remoteMembers.FindByEmail()
-        //var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
-        //var result = await _userManager.CreateAsync(user);
-        //if (result.Succeeded)
-        //{
-        //    result = await _userManager.AddLoginAsync(user, info);
-        //    if (result.Succeeded)
-        //    {
-        //        await _signInManager.SignInAsync(user, isPersistent: false);
-        //        _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
-        //        return RedirectToLocal(returnUrl);
-        //    }
-        //}
         AddErrors(result);
       }
 
@@ -342,13 +338,13 @@ namespace SarData.Auth.Controllers
       if (ModelState.IsValid)
       {
         // Get the information about the user from the external login provider
-        var info = await _signInManager.GetExternalLoginInfoAsync();
+        var info = await signin.GetExternalLoginInfoAsync();
         if (info == null)
         {
           throw new ApplicationException("Error loading external login information during confirmation.");
         }
 
-        var codeRow = await _db.ExternalLoginCodes.FindAsync(info.ProviderKey);
+        var codeRow = await db.ExternalLoginCodes.FindAsync(info.ProviderKey);
         bool success = await VerifyMembership(codeRow, info, model);
         if (success)
         {
@@ -378,7 +374,7 @@ namespace SarData.Auth.Controllers
         return false;
       }
 
-      var member = await _remoteMembers.GetMember(codeRow.MemberId);
+      var member = await remoteMembers.GetMember(codeRow.MemberId);
       if (member == null)
       {
         AddErrors(IdentityResult.Failed(new IdentityError { Code = "MembershipCodeInvalid", Description = "Invalid or unknown code." }));
@@ -386,7 +382,7 @@ namespace SarData.Auth.Controllers
       }
 
       IdentityResult result;
-      var user = await _userManager.FindByMemberId(member.Id);
+      var user = await users.FindByMemberId(member.Id);
       if (user == null)
       {
         string nameSpacer = (string.IsNullOrEmpty(member.LastName) || string.IsNullOrEmpty(member.FirstName)) ? string.Empty : " ";
@@ -396,7 +392,7 @@ namespace SarData.Auth.Controllers
           MemberId = member.Id,
           PhoneNumber = member.PrimaryPhone
         };
-        result = await _userManager.CreateAsync(user);
+        result = await users.CreateAsync(user);
         if (!result.Succeeded)
         {
           AddErrors(result);
@@ -405,20 +401,20 @@ namespace SarData.Auth.Controllers
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, $"{member.FirstName}{nameSpacer}{member.LastName}") };
         if (!string.IsNullOrEmpty(member.FirstName)) claims.Add(new Claim(ClaimTypes.GivenName, member.FirstName));
         if (!string.IsNullOrEmpty(member.LastName)) claims.Add(new Claim(ClaimTypes.Surname, member.LastName));
-        await _userManager.AddClaimsAsync(user, claims);
+        await users.AddClaimsAsync(user, claims);
 
-        _logger.LogInformation($"User created for {member.FirstName} {member.LastName}. Will link to {info.ProviderDisplayName} login.");
+        logger.LogInformation($"User created for {member.FirstName} {member.LastName}. Will link to {info.ProviderDisplayName} login.");
       }
 
-      result = await _userManager.AddLoginAsync(user, info);
+      result = await users.AddLoginAsync(user, info);
       if (!result.Succeeded)
       {
         AddErrors(result);
         return false;
       }
 
-      await _signInManager.SignInAsync(user, isPersistent: false);
-      _logger.LogInformation($"Associated {info.ProviderDisplayName} login with account {user.Id} ({user.UserName} {user.Email})");
+      await signin.SignInAsync(user, isPersistent: false);
+      logger.LogInformation($"Associated {info.ProviderDisplayName} login with account {user.Id} ({user.UserName} {user.Email})");
       return true;
     }
 
@@ -430,12 +426,12 @@ namespace SarData.Auth.Controllers
       {
         return RedirectToAction(nameof(HomeController.Index), "Home");
       }
-      var user = await _userManager.FindByIdAsync(userId);
+      var user = await users.FindByIdAsync(userId);
       if (user == null)
       {
         throw new ApplicationException($"Unable to load user with ID '{userId}'.");
       }
-      var result = await _userManager.ConfirmEmailAsync(user, code);
+      var result = await users.ConfirmEmailAsync(user, code);
       return View(result.Succeeded ? "ConfirmEmail" : "Error");
     }
 
@@ -453,8 +449,8 @@ namespace SarData.Auth.Controllers
     {
       if (ModelState.IsValid)
       {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+        var user = await users.FindByEmailAsync(model.Email);
+        if (user == null || !(await users.IsEmailConfirmedAsync(user)))
         {
           // Don't reveal that the user does not exist or is not confirmed
           return RedirectToAction(nameof(ForgotPasswordConfirmation));
@@ -462,9 +458,9 @@ namespace SarData.Auth.Controllers
 
         // For more information on how to enable account confirmation and password reset please
         // visit https://go.microsoft.com/fwlink/?LinkID=532713
-        var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var code = await users.GeneratePasswordResetTokenAsync(user);
         var callbackUrl = Url.ResetPasswordCallbackLink(user.Id, code, Request.Scheme);
-        await _emailSender.SendEmailAsync(model.Email, "Reset Password",
+        await messaging.SendEmailAsync(model.Email, "Reset Password",
            $"Please reset your password by clicking here: <a href='{callbackUrl}'>link</a>");
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
       }
@@ -501,13 +497,13 @@ namespace SarData.Auth.Controllers
       {
         return View(model);
       }
-      var user = await _userManager.FindByEmailAsync(model.Email);
+      var user = await users.FindByEmailAsync(model.Email);
       if (user == null)
       {
         // Don't reveal that the user does not exist
         return RedirectToAction(nameof(ResetPasswordConfirmation));
       }
-      var result = await _userManager.ResetPasswordAsync(user, model.Code, model.Password);
+      var result = await users.ResetPasswordAsync(user, model.Code, model.Password);
       if (result.Succeeded)
       {
         return RedirectToAction(nameof(ResetPasswordConfirmation));
