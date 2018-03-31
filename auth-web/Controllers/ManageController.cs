@@ -20,7 +20,7 @@ namespace SarData.Auth.Controllers
   [Route("[controller]/[action]")]
   public class ManageController : Controller
   {
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly UserManager<ApplicationUser> users;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IMessagingService _emailSender;
     private readonly ILogger _logger;
@@ -36,7 +36,7 @@ namespace SarData.Auth.Controllers
       ILogger<ManageController> logger,
       UrlEncoder urlEncoder)
     {
-      _userManager = userManager;
+      users = userManager;
       _signInManager = signInManager;
       _emailSender = emailSender;
       _logger = logger;
@@ -49,19 +49,20 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       var model = new IndexViewModel
       {
-        Username = user.UserName,
+        Username = user.UserName.StartsWith("@") ? string.Empty : user.UserName,
         Email = user.Email,
         PhoneNumber = user.PhoneNumber,
         IsEmailConfirmed = user.EmailConfirmed,
-        StatusMessage = StatusMessage
+        StatusMessage = StatusMessage,
+        IsMember = !string.IsNullOrEmpty(user.MemberId)
       };
 
       return View(model);
@@ -76,34 +77,61 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
+      model.IsMember = user.IsMember;
 
-      var email = user.Email;
-      if (model.Email != email)
+      IdentityResult result;
+      if (user.UserName.StartsWith("@") && !string.IsNullOrEmpty(user.UserName))
       {
-        var setEmailResult = await _userManager.SetEmailAsync(user, model.Email);
-        if (!setEmailResult.Succeeded)
+        var otherUser = await users.FindByNameAsync(model.Username);
+        if (otherUser != null)
         {
-          throw new ApplicationException($"Unexpected error occurred setting email for user with ID '{user.Id}'.");
+          ModelState.AddModelError(nameof(model.Username), $"Username '{model.Username}' already in use");
+          model.Username = string.Empty;
+        }
+        else
+        {
+          result = await users.SetUserNameAsync(user, model.Username);
+          if (!result.Succeeded)
+          {
+            throw new ApplicationException($"Unexpected error occured settings username for user with ID '{user.Id}.");
+          }
         }
       }
 
-      var phoneNumber = user.PhoneNumber;
-      if (model.PhoneNumber != phoneNumber)
+      if (!user.IsMember)
       {
-        var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, model.PhoneNumber);
-        if (!setPhoneResult.Succeeded)
+        var email = user.Email;
+        if (model.Email != email)
         {
-          throw new ApplicationException($"Unexpected error occurred setting phone number for user with ID '{user.Id}'.");
+          var setEmailResult = await users.SetEmailAsync(user, model.Email);
+          if (!setEmailResult.Succeeded)
+          {
+            throw new ApplicationException($"Unexpected error occurred setting email for user with ID '{user.Id}'.");
+          }
+        }
+
+        var phoneNumber = user.PhoneNumber;
+        if (model.PhoneNumber != phoneNumber)
+        {
+          var setPhoneResult = await users.SetPhoneNumberAsync(user, model.PhoneNumber);
+          if (!setPhoneResult.Succeeded)
+          {
+            throw new ApplicationException($"Unexpected error occurred setting phone number for user with ID '{user.Id}'.");
+          }
         }
       }
 
-      StatusMessage = "Your profile has been updated";
-      return RedirectToAction(nameof(Index));
+      if (ModelState.IsValid)
+      {
+        StatusMessage = "Your profile has been updated";
+        return RedirectToAction(nameof(Index));
+      }
+      return View(nameof(Index), model);
     }
 
     [HttpPost]
@@ -115,13 +143,13 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+      var code = await users.GenerateEmailConfirmationTokenAsync(user);
       var callbackUrl = Url.EmailConfirmationLink(user.Id, code, Request.Scheme);
       var email = user.Email;
       await _emailSender.SendEmailConfirmationAsync(email, callbackUrl);
@@ -133,13 +161,13 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> ChangePassword()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var hasPassword = await _userManager.HasPasswordAsync(user);
+      var hasPassword = await users.HasPasswordAsync(user);
       if (!hasPassword)
       {
         return RedirectToAction(nameof(SetPassword));
@@ -158,13 +186,13 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var changePasswordResult = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+      var changePasswordResult = await users.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
       if (!changePasswordResult.Succeeded)
       {
         AddErrors(changePasswordResult);
@@ -181,13 +209,13 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> SetPassword()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var hasPassword = await _userManager.HasPasswordAsync(user);
+      var hasPassword = await users.HasPasswordAsync(user);
 
       if (hasPassword)
       {
@@ -207,13 +235,13 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var addPasswordResult = await _userManager.AddPasswordAsync(user, model.NewPassword);
+      var addPasswordResult = await users.AddPasswordAsync(user, model.NewPassword);
       if (!addPasswordResult.Succeeded)
       {
         AddErrors(addPasswordResult);
@@ -229,17 +257,17 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> ExternalLogins()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var model = new ExternalLoginsViewModel { CurrentLogins = await _userManager.GetLoginsAsync(user) };
+      var model = new ExternalLoginsViewModel { CurrentLogins = await users.GetLoginsAsync(user) };
       model.OtherLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync())
           .Where(auth => model.CurrentLogins.All(ul => auth.Name != ul.LoginProvider))
           .ToList();
-      model.ShowRemoveButton = await _userManager.HasPasswordAsync(user) || model.CurrentLogins.Count > 1;
+      model.ShowRemoveButton = await users.HasPasswordAsync(user) || model.CurrentLogins.Count > 1;
       model.StatusMessage = StatusMessage;
 
       return View(model);
@@ -254,17 +282,17 @@ namespace SarData.Auth.Controllers
 
       // Request a redirect to the external login provider to link a login for the current user
       var redirectUrl = Url.Action(nameof(LinkLoginCallback));
-      var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl, _userManager.GetUserId(User));
+      var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl, users.GetUserId(User));
       return new ChallengeResult(provider, properties);
     }
 
     [HttpGet]
     public async Task<IActionResult> LinkLoginCallback()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       var info = await _signInManager.GetExternalLoginInfoAsync(user.Id);
@@ -273,7 +301,7 @@ namespace SarData.Auth.Controllers
         throw new ApplicationException($"Unexpected error occurred loading external login info for user with ID '{user.Id}'.");
       }
 
-      var result = await _userManager.AddLoginAsync(user, info);
+      var result = await users.AddLoginAsync(user, info);
       if (!result.Succeeded)
       {
         throw new ApplicationException($"Unexpected error occurred adding external login for user with ID '{user.Id}'.");
@@ -290,13 +318,13 @@ namespace SarData.Auth.Controllers
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveLogin(RemoveLoginViewModel model)
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var result = await _userManager.RemoveLoginAsync(user, model.LoginProvider, model.ProviderKey);
+      var result = await users.RemoveLoginAsync(user, model.LoginProvider, model.ProviderKey);
       if (!result.Succeeded)
       {
         throw new ApplicationException($"Unexpected error occurred removing external login for user with ID '{user.Id}'.");
@@ -310,17 +338,17 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> TwoFactorAuthentication()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       var model = new TwoFactorAuthenticationViewModel
       {
-        HasAuthenticator = await _userManager.GetAuthenticatorKeyAsync(user) != null,
+        HasAuthenticator = await users.GetAuthenticatorKeyAsync(user) != null,
         Is2faEnabled = user.TwoFactorEnabled,
-        RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user),
+        RecoveryCodesLeft = await users.CountRecoveryCodesAsync(user),
       };
 
       return View(model);
@@ -329,10 +357,10 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> Disable2faWarning()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       if (!user.TwoFactorEnabled)
@@ -347,13 +375,13 @@ namespace SarData.Auth.Controllers
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Disable2fa()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      var disable2faResult = await _userManager.SetTwoFactorEnabledAsync(user, false);
+      var disable2faResult = await users.SetTwoFactorEnabledAsync(user, false);
       if (!disable2faResult.Succeeded)
       {
         throw new ApplicationException($"Unexpected error occured disabling 2FA for user with ID '{user.Id}'.");
@@ -366,10 +394,10 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> EnableAuthenticator()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       var model = new EnableAuthenticatorViewModel();
@@ -382,10 +410,10 @@ namespace SarData.Auth.Controllers
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EnableAuthenticator(EnableAuthenticatorViewModel model)
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       if (!ModelState.IsValid)
@@ -397,8 +425,8 @@ namespace SarData.Auth.Controllers
       // Strip spaces and hypens
       var verificationCode = model.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
 
-      var is2faTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
-          user, _userManager.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
+      var is2faTokenValid = await users.VerifyTwoFactorTokenAsync(
+          user, users.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
 
       if (!is2faTokenValid)
       {
@@ -407,9 +435,9 @@ namespace SarData.Auth.Controllers
         return View(model);
       }
 
-      await _userManager.SetTwoFactorEnabledAsync(user, true);
+      await users.SetTwoFactorEnabledAsync(user, true);
       _logger.LogInformation("User with ID {UserId} has enabled 2FA with an authenticator app.", user.Id);
-      var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+      var recoveryCodes = await users.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
       TempData[RecoveryCodesKey] = recoveryCodes.ToArray();
 
       return RedirectToAction(nameof(ShowRecoveryCodes));
@@ -438,14 +466,14 @@ namespace SarData.Auth.Controllers
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetAuthenticator()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
-      await _userManager.SetTwoFactorEnabledAsync(user, false);
-      await _userManager.ResetAuthenticatorKeyAsync(user);
+      await users.SetTwoFactorEnabledAsync(user, false);
+      await users.ResetAuthenticatorKeyAsync(user);
       _logger.LogInformation("User with id '{UserId}' has reset their authentication app key.", user.Id);
 
       return RedirectToAction(nameof(EnableAuthenticator));
@@ -454,10 +482,10 @@ namespace SarData.Auth.Controllers
     [HttpGet]
     public async Task<IActionResult> GenerateRecoveryCodesWarning()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       if (!user.TwoFactorEnabled)
@@ -472,10 +500,10 @@ namespace SarData.Auth.Controllers
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> GenerateRecoveryCodes()
     {
-      var user = await _userManager.GetUserAsync(User);
+      var user = await users.GetUserAsync(User);
       if (user == null)
       {
-        throw new ApplicationException($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+        throw new ApplicationException($"Unable to load user with ID '{users.GetUserId(User)}'.");
       }
 
       if (!user.TwoFactorEnabled)
@@ -483,7 +511,7 @@ namespace SarData.Auth.Controllers
         throw new ApplicationException($"Cannot generate recovery codes for user with ID '{user.Id}' as they do not have 2FA enabled.");
       }
 
-      var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+      var recoveryCodes = await users.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
       _logger.LogInformation("User with ID {UserId} has generated new 2FA recovery codes.", user.Id);
 
       var model = new ShowRecoveryCodesViewModel { RecoveryCodes = recoveryCodes.ToArray() };
@@ -522,18 +550,18 @@ namespace SarData.Auth.Controllers
     {
       return string.Format(
           AuthenticatorUriFormat,
-          _urlEncoder.Encode("SarData.Auth"),
+          _urlEncoder.Encode("SAR Tracks"),
           _urlEncoder.Encode(email),
           unformattedKey);
     }
 
     private async Task LoadSharedKeyAndQrCodeUriAsync(ApplicationUser user, EnableAuthenticatorViewModel model)
     {
-      var unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+      var unformattedKey = await users.GetAuthenticatorKeyAsync(user);
       if (string.IsNullOrEmpty(unformattedKey))
       {
-        await _userManager.ResetAuthenticatorKeyAsync(user);
-        unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+        await users.ResetAuthenticatorKeyAsync(user);
+        unformattedKey = await users.GetAuthenticatorKeyAsync(user);
       }
 
       model.SharedKey = FormatKey(unformattedKey);
