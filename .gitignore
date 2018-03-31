@@ -7,3 +7,4 @@ seed.json
 dev-store.db
 tempkey.rsa
 appsettings.local.json
+auth-web/members.json

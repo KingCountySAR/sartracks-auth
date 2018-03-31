@@ -1,15 +1,22 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SarData.Auth.Models.AccountViewModels
 {
-    public class ExternalLoginViewModel
+  public class ExternalLoginViewModel : IValidatableObject
+  {
+    [EmailAddress]
+    public string Email { get; set; }
+
+    [Phone]
+    public string Phone { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+      if (string.IsNullOrWhiteSpace(Email) && string.IsNullOrWhiteSpace(Phone))
+      {
+        yield return new ValidationResult($"Must specify either Email or Phone #.", new string[0]);
+      }
     }
+  }
 }

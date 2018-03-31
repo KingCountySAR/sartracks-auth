@@ -1,0 +1,10 @@
+﻿[
+  {
+    "id": "16c8a80d-1db5-4da2-864f-1782184acbf8",
+    "firstname": "Matt",
+    "lastname": "Cosand",
+    "primaryEmail": "matt.cosand@example.com",
+    "primaryPhone": "555-123-4566",
+    "isActive": true
+  }
+]

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace SarData.Auth.Services
 {
-    public interface IEmailSender
+    public interface IMessagingService
     {
         Task SendEmailAsync(string email, string subject, string message);
     }
