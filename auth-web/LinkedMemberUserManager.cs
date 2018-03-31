@@ -25,6 +25,6 @@ namespace SarData.Auth
       return await db.Users.SingleOrDefaultAsync(f => f.MemberId == memberId);
     }
 
-   
+
   }
 }

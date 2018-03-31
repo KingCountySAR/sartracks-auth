@@ -3,6 +3,7 @@ obj/
 bin/
 *.user
 
+.leu
 seed.json
 dev-store.db
 tempkey.rsa
