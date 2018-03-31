@@ -11,7 +11,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace SarData.Auth
+namespace SarData.Auth.Identity
 {
   public class LinkedMemberSigninManager : SignInManager<ApplicationUser>
   {

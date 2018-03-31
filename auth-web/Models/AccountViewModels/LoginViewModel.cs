@@ -9,7 +9,6 @@ namespace SarData.Auth.Models.AccountViewModels
     public class LoginViewModel
     {
         [Required]
-        [EmailAddress]
         public string Username { get; set; }
 
         [Required]

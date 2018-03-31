@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using SarData.Auth.Data;
+using SarData.Auth.Identity;
 using SarData.Auth.Models;
 using SarData.Auth.Models.AccountViewModels;
 using SarData.Auth.Services;
@@ -387,7 +385,7 @@ namespace SarData.Auth.Controllers
       {
         string nameSpacer = (string.IsNullOrEmpty(member.LastName) || string.IsNullOrEmpty(member.FirstName)) ? string.Empty : " ";
         user = new ApplicationUser {
-          UserName = $"{member.Id}-{info.LoginProvider}",
+          UserName = $"@{member.Id}-{info.LoginProvider}",
           Email = member.PrimaryEmail,
           MemberId = member.Id,
           PhoneNumber = member.PrimaryPhone

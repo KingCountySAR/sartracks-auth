@@ -16,6 +16,7 @@ using IdentityServer4.EntityFramework.DbContexts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using SarData.Auth.Identity;
 
 namespace SarData.Auth
 {
@@ -57,11 +58,8 @@ namespace SarData.Auth
       }
 
 
-      services.AddDbContext<ApplicationDbContext>(options =>
-      {
-        //options.UseSqlServer(Configuration["store:connectionString"]);
-        configureDbAction(options);
-      });
+      services.AddDbContext<ApplicationDbContext>(options => { configureDbAction(options); });
+      services.AddTransient<IPasswordHasher<ApplicationUser>, LegacyPasswordHasher>();
 
       services.AddIdentity<ApplicationUser, IdentityRole>()
           .AddUserManager<LinkedMemberUserManager>()
