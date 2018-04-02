@@ -285,11 +285,16 @@ namespace SarData.Auth.Controllers
 
         IdentityResult result;
         List<RemoteMember> members = new List<RemoteMember>();
+        bool foundPhone = false;
         if (!string.IsNullOrWhiteSpace(model.Phone))
         {
           members = await remoteMembers.FindByPhone(model.Phone);
         }
-        if (members.Count != 1 && !string.IsNullOrWhiteSpace(model.Email))
+        if (members.Count == 1)
+        {
+          foundPhone = true;
+        }
+        else if (!string.IsNullOrWhiteSpace(model.Email))
         {
           members = await remoteMembers.FindByEmail(model.Email);
         }
@@ -311,7 +316,7 @@ namespace SarData.Auth.Controllers
           codeRow.Code = new Random().Next(1000000).ToString("000000");
           await db.SaveChangesAsync();
 
-          if (!string.IsNullOrWhiteSpace(model.Phone))
+          if (foundPhone)
           {
             await messaging.SendTextAsync(model.Phone, "Your verification code: " + codeRow.Code);
           }
