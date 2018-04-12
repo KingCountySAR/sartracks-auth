@@ -17,7 +17,8 @@ namespace SarData.Auth
         .ConfigureAppConfiguration(config =>
         {
           config.AddJsonFile("appsettings.json", true, false)
-                .AddJsonFile("appsettings.local.json", true, false);
+                .AddJsonFile("appsettings.local.json", true, false)
+                .AddEnvironmentVariables();
         })
         .Build();
   }
