@@ -29,9 +29,9 @@ namespace SarData.Auth.Services
       return (await ReadMembers()).Where(f => matcher.Replace(f.PrimaryPhone, string.Empty) == phone).OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToList();
     }
 
-    private async Task<List<RemoteMember>> ReadMembers()
+    private Task<List<RemoteMember>> ReadMembers()
     {
-      return JsonConvert.DeserializeObject<List<RemoteMember>>(await File.ReadAllTextAsync("members.json"));
+      return Task.FromResult(JsonConvert.DeserializeObject<List<RemoteMember>>(File.ReadAllText("members.json")));
     }
   }
 }

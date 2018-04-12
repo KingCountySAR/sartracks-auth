@@ -19,16 +19,18 @@ namespace SarData.Auth.Services
 
     public async Task SendEmailAsync(string email, string subject, string message)
     {
-      await File.AppendAllLinesAsync(GetPath("logs\\sent-mail.log"), new[] { "TO: " + email, "SUBJ: " + subject, message, string.Empty });
+      string[] lines = new[] { "TO: " + email, "SUBJ: " + subject, message, string.Empty };
+      File.AppendAllLines(GetPath("logs\\sent-mail.log"), lines);
 
       var client = new SmtpClient { DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory, PickupDirectoryLocation = GetPath("logs\\sent-mail\\") };
       var mail = new MailMessage("example@example.com", email, subject, message);
       await client.SendMailAsync(mail);
     }
 
-    public async Task SendTextAsync(string phone, string message)
+    public Task SendTextAsync(string phone, string message)
     {
-      await File.AppendAllLinesAsync(GetPath("logs\\sent-sms.log"), new[] { $"{phone}: {message}" });
+      File.AppendAllLines(GetPath("logs\\sent-sms.log"), new[] { $"{phone}: {message}" });
+      return Task.CompletedTask;
     }
 
     private string GetPath(string path)
