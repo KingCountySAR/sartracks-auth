@@ -29,7 +29,7 @@ namespace SarData.Auth
     {
       Configuration = configuration;
       this.env = env;
-      servicesLogger = logFactory.CreateLogger("Startup");
+      this.servicesLogger = logFactory.CreateLogger("Startup");
     }
 
     public IConfiguration Configuration { get; }
@@ -84,7 +84,7 @@ namespace SarData.Auth
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+    public void Configure(IApplicationBuilder app, IHostingEnvironment env)
     {
       using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
       {
@@ -125,8 +125,6 @@ namespace SarData.Auth
         var seeder = serviceScope.ServiceProvider.GetRequiredService<OidcSeeder>();
         seeder.Seed();
       }
-
-      loggerFactory.AddApplicationInsights(app.ApplicationServices, LogLevel.Information);
 
       Action<IApplicationBuilder> configure = innerApp =>
       {
