@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using System;
 
 namespace SarData.Auth
 {
@@ -11,8 +12,15 @@ namespace SarData.Auth
       BuildWebHost(args).Run();
     }
 
-    public static IWebHost BuildWebHost(string[] args) =>
-      WebHost.CreateDefaultBuilder(args)
+    public static IWebHost BuildWebHost(string[] args) {
+      var builder = WebHost.CreateDefaultBuilder(args);
+      var insightsKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
+      if (!string.IsNullOrWhiteSpace(insightsKey))
+      {
+        builder = builder.UseApplicationInsights(insightsKey);
+      }
+
+      return builder
         .UseStartup<Startup>()
         .ConfigureAppConfiguration(config =>
         {
@@ -21,5 +29,6 @@ namespace SarData.Auth
                 .AddEnvironmentVariables();
         })
         .Build();
+    }
   }
 }
