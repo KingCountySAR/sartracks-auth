@@ -255,7 +255,7 @@ namespace SarData.Auth
       }
       else
       {
-        var cert = new X509Certificate2(Convert.FromBase64String(Configuration["auth:signingKey"]));
+        var cert = new X509Certificate2(Convert.FromBase64String(Configuration["auth:signingKey"]), string.Empty, X509KeyStorageFlags.MachineKeySet);
         servicesLogger.LogInformation($"Signing certificate {cert.FriendlyName} expiring {cert.GetExpirationDateString()}");
         identityServer.AddSigningCredential(cert);
       }
@@ -267,11 +267,15 @@ namespace SarData.Auth
       {
         if (!useDevCert)
         {
+          useSaml = true;
           servicesLogger.LogInformation("Setting up SAML for licensee " + samlLicensee);
           identityServer.AddSamlPlugin(options =>
           {
             options.Licensee = samlLicensee;
             options.LicenseKey = samlKey;
+            options.WantAuthenticationRequestsSigned = false;
+
+            options.DefaultNameIdentifierFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
           })
           .AddInMemoryServiceProviders(new[] {
             new IdentityServer4.Saml.Models.ServiceProvider {
