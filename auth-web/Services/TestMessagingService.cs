@@ -19,7 +19,7 @@ namespace SarData.Auth.Services
 
     public async Task SendEmailAsync(string email, string subject, string message)
     {
-      string[] lines = new[] { "TO: " + email, "SUBJ: " + subject, message, string.Empty };
+      string[] lines = new[] { "Date: " + DateTime.Now, "TO: " + email, "SUBJ: " + subject, message, string.Empty };
       File.AppendAllLines(GetPath("logs\\sent-mail.log"), lines);
 
       var client = new SmtpClient { DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory, PickupDirectoryLocation = GetPath("logs\\sent-mail\\") };

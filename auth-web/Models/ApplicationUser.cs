@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
@@ -15,6 +12,8 @@ namespace SarData.Auth.Models
     public string MemberId { get; set; }
 
     [JsonIgnore]
-    public bool IsMember {  get { return !string.IsNullOrEmpty(MemberId); } }
+    public bool IsMember { get { return !string.IsNullOrEmpty(MemberId); } }
+
+    public DateTimeOffset Created { get; set; }
   }
 }

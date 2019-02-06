@@ -2,6 +2,10 @@
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
+    "iis": {
+      "applicationUrl": "http://localhost/auth-web",
+      "sslPort": 0
+    },
     "iisExpress": {
       "applicationUrl": "http://local.local:5001/",
       "sslPort": 0
@@ -18,9 +22,10 @@
     "SarData.Auth": {
       "commandName": "Project",
       "environmentVariables": {
+        "TargetFramework": "net471",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://local.local:5001/"
+      "applicationUrl": "http://local.local:5100/"
     }
   }
 }

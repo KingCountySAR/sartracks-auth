@@ -16,7 +16,7 @@ using SarData.Auth.Services;
 namespace SarData.Auth.Controllers
 {
   [Authorize]
-  [Route("[controller]/[action]")]
+  [Route("[action]")]
   public class AccountController : Controller
   {
     private readonly IRemoteMembersService remoteMembers;
@@ -27,8 +27,8 @@ namespace SarData.Auth.Controllers
     private readonly ILogger logger;
 
     public AccountController(
-      IRemoteMembersService remoteMembers,
-      ApplicationDbContext db,
+        IRemoteMembersService remoteMembers,
+        ApplicationDbContext db,
         LinkedMemberUserManager userManager,
         SignInManager<ApplicationUser> signInManager,
         IMessagingService emailSender,
@@ -354,7 +354,7 @@ namespace SarData.Auth.Controllers
           return RedirectToLocal(returnUrl);
         }
       }
-       return View("ExternalVerify");
+      return View("ExternalVerify");
     }
 
     private async Task<bool> VerifyMembership(ExternalLoginCode codeRow, ExternalLoginInfo info, ExternalVerifyViewModel model)
@@ -389,11 +389,13 @@ namespace SarData.Auth.Controllers
       if (user == null)
       {
         string nameSpacer = (string.IsNullOrEmpty(member.LastName) || string.IsNullOrEmpty(member.FirstName)) ? string.Empty : " ";
-        user = new ApplicationUser {
+        user = new ApplicationUser
+        {
           UserName = $"@{member.Id}-{info.LoginProvider}",
           Email = member.PrimaryEmail,
           MemberId = member.Id,
-          PhoneNumber = member.PrimaryPhone
+          PhoneNumber = member.PrimaryPhone,
+          Created = DateTimeOffset.UtcNow
         };
         result = await users.CreateAsync(user);
         if (!result.Succeeded)
@@ -404,6 +406,7 @@ namespace SarData.Auth.Controllers
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, $"{member.FirstName}{nameSpacer}{member.LastName}") };
         if (!string.IsNullOrEmpty(member.FirstName)) claims.Add(new Claim(ClaimTypes.GivenName, member.FirstName));
         if (!string.IsNullOrEmpty(member.LastName)) claims.Add(new Claim(ClaimTypes.Surname, member.LastName));
+        if (!string.IsNullOrEmpty(member.PrimaryEmail)) claims.Add(new Claim(ClaimTypes.Email, member.PrimaryEmail));
         await users.AddClaimsAsync(user, claims);
 
         logger.LogInformation($"User created for {member.FirstName} {member.LastName}. Will link to {info.ProviderDisplayName} login.");

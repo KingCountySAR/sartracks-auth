@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +18,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using SarData.Auth.Identity;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
+using System.IO;
+//using ComponentSpace.Saml2.Configuration;
 
 namespace SarData.Auth
 {
@@ -38,49 +39,61 @@ namespace SarData.Auth
     private readonly IHostingEnvironment env;
     private Uri siteRoot;
     private bool useMigrations = true;
-    private bool useSaml = false;
-
+    
     // TODO - Figure out how to get this into ApplicationDbContext
     public static string SqlDefaultSchema { get; private set; } = "auth";
 
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-      siteRoot = new Uri(Configuration.GetValue<string>("siteRoot"));
+      siteRoot = new Uri(Configuration["siteRoot"]);
       Action<DbContextOptionsBuilder> configureDbAction = AddDatabases(services);
 
-      if (env.IsDevelopment() && (string.IsNullOrEmpty(Configuration["api:root"]) || string.IsNullOrEmpty(Configuration["api:key"])))
-      {
-        servicesLogger.LogInformation("Will read members from local members.json file");
-        services.AddSingleton<IRemoteMembersService>(new LocalFileMembersService());
-      }
-      else
-      {
-        servicesLogger.LogInformation("Will read members from API at " + Configuration["api:root"]);
-        services.AddSingleton<IRemoteMembersService>(new LegacyApiMemberService(Configuration["api:root"], Configuration["api:key"]));
-      }
-
+      //if (env.IsDevelopment() && (string.IsNullOrEmpty(Configuration["api:root"]) || string.IsNullOrEmpty(Configuration["api:key"])))
+      //{
+      //  servicesLogger.LogInformation("Will read members from local members.json file");
+      //  services.AddSingleton<IRemoteMembersService>(new LocalFileMembersService());
+      //}
+      //else if (!(string.IsNullOrEmpty(Configuration["api:root"]) || string.IsNullOrEmpty(Configuration["api:key"])))
+      //{
+      //  servicesLogger.LogInformation("Will read members from API at " + Configuration["api:root"]);
+      //  services.AddSingleton<IRemoteMembersService>(new LegacyApiMemberService(Configuration["api:root"], Configuration["api:key"]));
+      //}
+      
+      services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
+      services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(Configuration["store:connectionstring"]));
 
       services.AddTransient<IPasswordHasher<ApplicationUser>, LegacyPasswordHasher>();
       services.AddTransient<OidcSeeder>();
 
-      services.AddIdentity<ApplicationUser, IdentityRole>()
+      services.AddIdentity<ApplicationUser, ApplicationRole>()
+          .AddRoleManager<ApplicationRoleManager>()
           .AddUserManager<LinkedMemberUserManager>()
           .AddSignInManager<LinkedMemberSigninManager>()
           .AddEntityFrameworkStores<ApplicationDbContext>()
           .AddDefaultTokenProviders();
+
+      services.ConfigureApplicationCookie(options =>
+      {
+        options.LoginPath = "/Login";
+      });
 
       AddExternalLogins(services.AddAuthentication());
 
       // Add application services.
       //if (env.IsDevelopment())
       //{
-        services.AddTransient<IMessagingService, TestMessagingService>();
+      services.AddTransient<IMessagingService, TestMessagingService>();
       //}
 
       services.AddMvc();
 
       AddIdentityServer(services, configureDbAction);
+
+      //if (!string.IsNullOrWhiteSpace(Configuration["auth:saml:facebook:name"]) && !string.IsNullOrWhiteSpace(Configuration["auth:saml:facebook:acsUrl"]))
+      //{
+      //  services.AddSaml(ConfigureSaml);
+      //}
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -150,9 +163,6 @@ namespace SarData.Auth
         innerApp.UseStaticFiles();
 
         innerApp.UseIdentityServer();
-#if NET471
-        if (useSaml) { innerApp.UseIdentityServerSamlPlugin(); }
-#endif
 
         innerApp.UseMvc(routes =>
         {
@@ -219,7 +229,10 @@ namespace SarData.Auth
         useMigrations = false;
         configureDbAction = sqlBuilder => sqlBuilder.UseSqlite(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
       }
-      services.AddDbContext<ApplicationDbContext>(options => { configureDbAction(options); });
+      services.AddDbContext<ApplicationDbContext>(options => {
+        options.EnableSensitiveDataLogging();
+        configureDbAction(options);
+      });
       return configureDbAction;
     }
 
@@ -246,54 +259,60 @@ namespace SarData.Auth
         })
         .AddAspNetIdentity<ApplicationUser>();
 
-      bool useDevCert = false;
       if (string.IsNullOrEmpty(Configuration["auth:signingKey"]))
       {
-        useDevCert = true;
         servicesLogger.LogWarning("Using development signing certificate");
         identityServer.AddDeveloperSigningCredential();
       }
       else
       {
         var cert = new X509Certificate2(Convert.FromBase64String(Configuration["auth:signingKey"]), string.Empty, X509KeyStorageFlags.MachineKeySet);
+        byte[] encodedPublicKey = cert.PublicKey.EncodedKeyValue.RawData;
+        File.WriteAllLines("signing-key-public.txt", new[] {
+            "-----BEGIN PUBLIC KEY-----",
+            Convert.ToBase64String(encodedPublicKey, Base64FormattingOptions.InsertLineBreaks),
+            "-----END PUBLIC KEY-----",
+        });
         servicesLogger.LogInformation($"Signing certificate {cert.FriendlyName} expiring {cert.GetExpirationDateString()}");
         identityServer.AddSigningCredential(cert);
       }
-
-#if NET471
-      string samlLicensee = Configuration["auth:saml:licensee"];
-      string samlKey = Configuration["auth:saml:key"];
-      if (!string.IsNullOrEmpty(samlLicensee) && !string.IsNullOrEmpty(samlKey))
-      {
-        if (!useDevCert)
-        {
-          useSaml = true;
-          servicesLogger.LogInformation("Setting up SAML for licensee " + samlLicensee);
-          identityServer.AddSamlPlugin(options =>
-          {
-            options.Licensee = samlLicensee;
-            options.LicenseKey = samlKey;
-            options.WantAuthenticationRequestsSigned = false;
-
-            options.DefaultNameIdentifierFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
-          })
-          .AddInMemoryServiceProviders(new[] {
-            new IdentityServer4.Saml.Models.ServiceProvider {
-              EntityId = "https://www.facebook.com/company/726856840841575",
-              AssertionConsumerServices =
-              {
-                  new IdentityServer4.Saml.Models.Service(IdentityServer4.Saml.SamlConstants.BindingTypes.HttpPost, "https://workplace.facebook.com/work/saml.php", 1)
-              }
-            }
-          });
-        }
-        else
-        {
-          servicesLogger.LogError("Can't use SAML with the developer signing certificate");
-        }
-      }
-#endif
     }
 
+    //private void ConfigureSaml(SamlConfigurations samlConfigurations)
+    //{
+    //  samlConfigurations.Configurations = new List<SamlConfiguration>()
+    //  {
+    //    new SamlConfiguration
+    //    {
+    //      LocalIdentityProviderConfiguration = new LocalIdentityProviderConfiguration
+    //      {
+    //        Name = Configuration["siteRoot"] + "/SAML/SingleSignOnService",
+    //        Description = "KCSARA Sign-In",
+    //        SingleSignOnServiceUrl = Configuration["siteRoot"] + "SAML/SingleSignOnService",
+    //        LocalCertificates = new List<Certificate>()
+    //        {
+    //          new Certificate()
+    //          {
+    //            String = Configuration["auth:signingKey"],
+    //            Password = String.Empty
+    //          }
+    //        }
+    //      },
+    //      PartnerServiceProviderConfigurations= new []
+    //      {
+    //        new PartnerServiceProviderConfiguration
+    //        {
+    //          Name = Configuration["auth:saml:facebook:name"],
+    //          Description = "Facebook @ Work",
+    //          WantAuthnRequestSigned = false,
+    //          SignAssertion = true,
+    //          SignSamlResponse = false,
+    //          NameIDFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+    //          AssertionConsumerServiceUrl = Configuration["auth:saml:facebook:acsUrl"],
+    //        }
+    //      }
+    //    }
+    //  };
+    //}
   }
 }

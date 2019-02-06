@@ -32,7 +32,7 @@ namespace Internal.SarData.Client.Web
       {
         options.SignInScheme = "Cookies";
         options.RequireHttpsMetadata = false;
-        options.Authority = "http://local.example.com:5001";
+        options.Authority = "http://localhost:5100";
         options.ClientId = "sample-mvc";
         options.SaveTokens = true;
       });

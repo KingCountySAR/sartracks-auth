@@ -55,6 +55,7 @@ namespace SarData.Auth.Identity
 
         db.IdentityResources.Add(new IdentityResources.OpenId().ToEntity());
         db.IdentityResources.Add(new IdentityResources.Profile().ToEntity());
+        db.IdentityResources.Add(new IdentityResources.Email().ToEntity());
         db.SaveChanges();
         int c = 0;
         foreach (var identity in info.IdentityResources)

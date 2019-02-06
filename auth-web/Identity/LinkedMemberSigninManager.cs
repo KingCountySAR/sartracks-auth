@@ -6,16 +6,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SarData.Auth.Models;
-using SarData.Auth.Services;
 
 namespace SarData.Auth.Identity
 {
   public class LinkedMemberSigninManager : SignInManager<ApplicationUser>
   {
-    private readonly IRemoteMembersService remoteMembers;
-
     public LinkedMemberSigninManager(
-      IRemoteMembersService remoteMembers,
       LinkedMemberUserManager userManager,
       IHttpContextAccessor contextAccessor,
       IUserClaimsPrincipalFactory<ApplicationUser> claimsFactory,
@@ -24,7 +20,6 @@ namespace SarData.Auth.Identity
       IAuthenticationSchemeProvider schemes)
       : base(userManager, contextAccessor, claimsFactory, optionsAccessor, logger, schemes)
     {
-      this.remoteMembers = remoteMembers;
     }
 
     public override async Task<bool> CanSignInAsync(ApplicationUser user)
@@ -36,12 +31,6 @@ namespace SarData.Auth.Identity
     protected override async Task<bool> IsLockedOut(ApplicationUser user)
     {
       bool locked = await base.IsLockedOut(user);
-      if (!locked && user.MemberId != null)
-      {
-        RemoteMember member = await remoteMembers.GetMember(user.MemberId);
-        locked = (member == null || !member.IsActive);
-      }
-
       return locked;
     }
 
