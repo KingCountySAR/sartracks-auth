@@ -5,14 +5,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SarData.Auth.Models;
+using SarData.Auth.Data;
 
 namespace SarData.Auth.Identity
 {
   public class LinkedMemberSigninManager : SignInManager<ApplicationUser>
   {
     public LinkedMemberSigninManager(
-      LinkedMemberUserManager userManager,
+      ApplicationUserManager userManager,
       IHttpContextAccessor contextAccessor,
       IUserClaimsPrincipalFactory<ApplicationUser> claimsFactory,
       IOptions<IdentityOptions> optionsAccessor,

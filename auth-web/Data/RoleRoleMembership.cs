@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SarData.Auth.Models
+namespace SarData.Auth.Data
 {
   public class RoleRoleMembership : IEquatable<RoleRoleMembership>
   {

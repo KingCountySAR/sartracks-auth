@@ -1,30 +1,33 @@
-﻿using IdentityModel;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SarData.Auth.Data.LegacyMigration;
-using SarData.Auth.Identity;
-using SarData.Auth.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using IdentityModel;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using SarData.Auth.Data;
+using SarData.Auth.Data.LegacyMigration;
+using SarData.Auth.Identity;
 
 namespace SarData.Auth.Controllers
 {
   [Route("[controller]/[action]")]
   public class MigrationController : Controller
   {
-    private readonly LinkedMemberUserManager users;
+    private readonly ApplicationUserManager users;
     private readonly LegacyAuthDbContext legacyDb;
     private readonly ApplicationRoleManager roleManager;
 
     public MigrationController(
-        LinkedMemberUserManager userManager,
+        IConfiguration config,
+        ApplicationUserManager userManager,
         ApplicationRoleManager roleManager,
         LegacyAuthDbContext legacyDb
       )
     {
+      if (!bool.Parse(config["setupMode"] ?? "false")) throw new InvalidOperationException("Not in setup mode");
       users = userManager;
       this.roleManager = roleManager;
       this.legacyDb = legacyDb;
@@ -36,7 +39,8 @@ namespace SarData.Auth.Controllers
       var failures = new List<string>();
       var legacyAssignments = await legacyDb.AccountRoles.GroupBy(f => f.AccountRow_Id).Select(f => new { Account = f.Key, Roles = f.Select(g => g.Role.Name).ToArray() }).ToListAsync();
 
-      foreach (var assignment in legacyAssignments) {
+      foreach (var assignment in legacyAssignments)
+      {
         await users.AddToRolesAsync(await users.FindByIdAsync(assignment.Account.ToString()), assignment.Roles);
       }
 
@@ -81,7 +85,7 @@ namespace SarData.Auth.Controllers
         });
       }
 
-     // await roleManager.RebuildInheritance();
+      // await roleManager.RebuildInheritance();
 
       return Content("Done\n\n" + string.Join("\n", failures));
     }

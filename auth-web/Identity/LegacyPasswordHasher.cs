@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using SarData.Auth.Models;
+using SarData.Auth.Data;
 
 namespace SarData.Auth.Identity
 {

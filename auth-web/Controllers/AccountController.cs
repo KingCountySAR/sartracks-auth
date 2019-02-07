@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,16 +22,18 @@ namespace SarData.Auth.Controllers
   {
     private readonly IRemoteMembersService remoteMembers;
     private readonly ApplicationDbContext db;
-    private readonly LinkedMemberUserManager users;
+    private readonly ApplicationUserManager users;
     private readonly SignInManager<ApplicationUser> signin;
+    private readonly IIdentityServerInteractionService interaction;
     private readonly IMessagingService messaging;
     private readonly ILogger logger;
 
     public AccountController(
         IRemoteMembersService remoteMembers,
         ApplicationDbContext db,
-        LinkedMemberUserManager userManager,
+        ApplicationUserManager userManager,
         SignInManager<ApplicationUser> signInManager,
+        IIdentityServerInteractionService interaction,
         IMessagingService emailSender,
         ILogger<AccountController> logger)
     {
@@ -38,6 +41,7 @@ namespace SarData.Auth.Controllers
       this.db = db;
       users = userManager;
       signin = signInManager;
+      this.interaction = interaction;
       messaging = emailSender;
       this.logger = logger;
     }
@@ -90,6 +94,14 @@ namespace SarData.Auth.Controllers
 
       // If we got this far, something failed, redisplay form
       return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> LoginError([FromQuery] string errorId)
+    {
+      var errorContext = await interaction.GetErrorContextAsync(errorId);
+      ViewData["errorMessage"] = errorContext.ErrorDescription;
+      return View();
     }
 
     [HttpGet]

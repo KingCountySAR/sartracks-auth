@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.Collections.Generic;
 
-namespace SarData.Auth.Models
+namespace SarData.Auth.Data
 {
   public class ApplicationRole : IdentityRole
   {

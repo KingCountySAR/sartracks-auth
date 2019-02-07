@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace SarData.Auth.Identity
 {
-  public class LinkedMemberUserManager : UserManager<ApplicationUser>
+  public class ApplicationUserManager : UserManager<ApplicationUser>
   {
     private readonly ApplicationDbContext db;
 
-    public LinkedMemberUserManager(
+    public ApplicationUserManager(
       ApplicationDbContext db,
       IUserStore<ApplicationUser> store,
       IOptions<IdentityOptions> optionsAccessor,
@@ -25,7 +25,7 @@ namespace SarData.Auth.Identity
       ILookupNormalizer keyNormalizer,
       IdentityErrorDescriber errors,
       IServiceProvider services,
-      ILogger<LinkedMemberUserManager> logger
+      ILogger<ApplicationUserManager> logger
       )
       : base(store, optionsAccessor, passwordHasher, userValidators, passwordValidators, keyNormalizer, errors, services, logger)
     {

@@ -9,10 +9,10 @@ namespace auth_web.Controllers
   [Route("Account/[action]")]
   public class AccountAuthController : Controller
   {
-    private readonly LinkedMemberUserManager userManager;
+    private readonly ApplicationUserManager userManager;
     private readonly ApplicationRoleManager roleManager;
 
-    public AccountAuthController(LinkedMemberUserManager userManager, ApplicationRoleManager roleManager)
+    public AccountAuthController(ApplicationUserManager userManager, ApplicationRoleManager roleManager)
     {
       this.userManager = userManager;
       this.roleManager = roleManager;

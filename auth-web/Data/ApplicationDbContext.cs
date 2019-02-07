@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using SarData.Auth.Models;
 
 namespace SarData.Auth.Data
 {
@@ -10,6 +9,7 @@ namespace SarData.Auth.Data
     private readonly string connectionString;
 
     public DbSet<ExternalLoginCode> ExternalLoginCodes { get; set; }
+    public DbSet<Application> Applications { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -46,6 +46,9 @@ namespace SarData.Auth.Data
       builder.Entity<ApplicationUserRole>().HasOne(f => f.User).WithMany().HasForeignKey(f => new { f.UserId });
 
       builder.Entity<ApplicationRole>().HasMany(f => f.UserMembers).WithOne(f => f.Role);
+
+      builder.Entity<ApplicationOrganization>().HasKey(f => new { f.ApplicationId, f.OrganizationId });
+      builder.Entity<UserOrganization>().HasKey(f => new { f.UserId, f.OrganizationId });
     }
   }
 }

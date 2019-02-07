@@ -1,11 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using SarData.Auth.Models;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using SarData.Auth.Data;
 
 namespace SarData.Auth.Identity
 {
@@ -51,7 +50,7 @@ namespace SarData.Auth.Identity
         }
         else if (computed[i].IsDirect != existing[j].IsDirect)
         {
-         // Console.WriteLine($"{computed[i]}\t//  {existing[j]}  ALTER");
+          // Console.WriteLine($"{computed[i]}\t//  {existing[j]}  ALTER");
           roles[computed[i].ChildId].Ancestors.Single(f => f.ParentId == computed[i].ParentId).IsDirect = computed[i].IsDirect;
           updatedIds.Add(computed[i].ChildId);
         }
@@ -77,7 +76,7 @@ namespace SarData.Auth.Identity
 
     private static void RemoveRelation(RoleRoleMembership existing, Dictionary<string, ApplicationRole> roles, List<string> updatedIds)
     {
-     // Console.WriteLine($"DELETE  \t // {existing}");
+      // Console.WriteLine($"DELETE  \t // {existing}");
       var victim = roles[existing.ChildId].Ancestors.Single(f => f.ParentId == existing.ParentId);
       roles[existing.ChildId].Ancestors.Remove(victim);
       updatedIds.Add(existing.ChildId);
@@ -85,7 +84,7 @@ namespace SarData.Auth.Identity
 
     private static void InsertRelation(RoleRoleMembership computed, Dictionary<string, ApplicationRole> roles, List<string> updatedIds)
     {
-     // Console.WriteLine($"{computed}\t  INSERT");
+      // Console.WriteLine($"{computed}\t  INSERT");
       roles[computed.ChildId].Ancestors.Add(computed);
       updatedIds.Add(computed.ChildId);
     }

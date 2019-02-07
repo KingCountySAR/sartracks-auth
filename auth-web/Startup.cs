@@ -1,24 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
+using IdentityModel;
+using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.Models;
+using IdentityServer4.ResponseHandling;
+using IdentityServer4.Services;
+using IdentityServer4.Validation;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using SarData.Auth.Data;
-using SarData.Auth.Models;
-using SarData.Auth.Services;
-using System.Reflection;
-using IdentityServer4.EntityFramework.DbContexts;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using SarData.Auth.Identity;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
-using System.IO;
+using SarData.Auth.Data;
+using SarData.Auth.Identity;
+using SarData.Auth.Services;
 //using ComponentSpace.Saml2.Configuration;
 
 namespace SarData.Auth
@@ -39,7 +44,7 @@ namespace SarData.Auth
     private readonly IHostingEnvironment env;
     private Uri siteRoot;
     private bool useMigrations = true;
-    
+
     // TODO - Figure out how to get this into ApplicationDbContext
     public static string SqlDefaultSchema { get; private set; } = "auth";
 
@@ -59,16 +64,19 @@ namespace SarData.Auth
       //  servicesLogger.LogInformation("Will read members from API at " + Configuration["api:root"]);
       //  services.AddSingleton<IRemoteMembersService>(new LegacyApiMemberService(Configuration["api:root"], Configuration["api:key"]));
       //}
-      
+
       services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
       services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(Configuration["store:connectionstring"]));
 
       services.AddTransient<IPasswordHasher<ApplicationUser>, LegacyPasswordHasher>();
       services.AddTransient<OidcSeeder>();
 
-      services.AddIdentity<ApplicationUser, ApplicationRole>()
+      services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+      {
+        options.ClaimsIdentity.UserNameClaimType = JwtClaimTypes.Name;
+      })      
           .AddRoleManager<ApplicationRoleManager>()
-          .AddUserManager<LinkedMemberUserManager>()
+          .AddUserManager<ApplicationUserManager>()
           .AddSignInManager<LinkedMemberSigninManager>()
           .AddEntityFrameworkStores<ApplicationDbContext>()
           .AddDefaultTokenProviders();
@@ -213,7 +221,6 @@ namespace SarData.Auth
           oidc.ClientSecret = Configuration[$"auth:oidc:{provider}:clientSecret"];
         });
       }
-
     }
 
 
@@ -229,7 +236,8 @@ namespace SarData.Auth
         useMigrations = false;
         configureDbAction = sqlBuilder => sqlBuilder.UseSqlite(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
       }
-      services.AddDbContext<ApplicationDbContext>(options => {
+      services.AddDbContext<ApplicationDbContext>(options =>
+      {
         options.EnableSensitiveDataLogging();
         configureDbAction(options);
       });
@@ -241,6 +249,7 @@ namespace SarData.Auth
       var identityServer = services.AddIdentityServer(options =>
       {
         options.PublicOrigin = siteRoot.GetLeftPart(UriPartial.Authority);
+        options.UserInteraction.ErrorUrl = "/LoginError";
       })
         .AddDeveloperSigningCredential()
         .AddConfigurationStore(options =>
@@ -257,8 +266,9 @@ namespace SarData.Auth
           // this enables automatic token cleanup. this is optional.
           options.EnableTokenCleanup = true;
         })
+        .AddCustomAuthorizeRequestValidator<MultiOrganizationRequestValidator>()
         .AddAspNetIdentity<ApplicationUser>();
-
+      
       if (string.IsNullOrEmpty(Configuration["auth:signingKey"]))
       {
         servicesLogger.LogWarning("Using development signing certificate");
