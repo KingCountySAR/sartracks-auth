@@ -10,4 +10,8 @@ tempkey.rsa
 appsettings.local.json
 auth-web/members.json
 auth-web/seed-oidc.json
+auth-web/signing-key-public.txt
+auth-web/plugins/
 logs/
+
+ComponentSpace.Saml2.dll

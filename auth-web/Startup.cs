@@ -1,16 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using IdentityModel;
 using IdentityServer4.EntityFramework.DbContexts;
-using IdentityServer4.Models;
-using IdentityServer4.ResponseHandling;
-using IdentityServer4.Services;
-using IdentityServer4.Validation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -23,8 +17,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SarData.Auth.Data;
 using SarData.Auth.Identity;
+using SarData.Auth.Saml;
 using SarData.Auth.Services;
-//using ComponentSpace.Saml2.Configuration;
 
 namespace SarData.Auth
 {
@@ -74,7 +68,7 @@ namespace SarData.Auth
       services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
       {
         options.ClaimsIdentity.UserNameClaimType = JwtClaimTypes.Name;
-      })      
+      })
           .AddRoleManager<ApplicationRoleManager>()
           .AddUserManager<ApplicationUserManager>()
           .AddSignInManager<LinkedMemberSigninManager>()
@@ -98,10 +92,7 @@ namespace SarData.Auth
 
       AddIdentityServer(services, configureDbAction);
 
-      //if (!string.IsNullOrWhiteSpace(Configuration["auth:saml:facebook:name"]) && !string.IsNullOrWhiteSpace(Configuration["auth:saml:facebook:acsUrl"]))
-      //{
-      //  services.AddSaml(ConfigureSaml);
-      //}
+      services.AddTransient(typeof(SamlIdentityProvider), SamlPluginLoader.GetSamlPluginType(services, Configuration, env.ContentRootPath, servicesLogger));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -268,7 +259,7 @@ namespace SarData.Auth
         })
         .AddCustomAuthorizeRequestValidator<MultiOrganizationRequestValidator>()
         .AddAspNetIdentity<ApplicationUser>();
-      
+
       if (string.IsNullOrEmpty(Configuration["auth:signingKey"]))
       {
         servicesLogger.LogWarning("Using development signing certificate");
@@ -287,42 +278,5 @@ namespace SarData.Auth
         identityServer.AddSigningCredential(cert);
       }
     }
-
-    //private void ConfigureSaml(SamlConfigurations samlConfigurations)
-    //{
-    //  samlConfigurations.Configurations = new List<SamlConfiguration>()
-    //  {
-    //    new SamlConfiguration
-    //    {
-    //      LocalIdentityProviderConfiguration = new LocalIdentityProviderConfiguration
-    //      {
-    //        Name = Configuration["siteRoot"] + "/SAML/SingleSignOnService",
-    //        Description = "KCSARA Sign-In",
-    //        SingleSignOnServiceUrl = Configuration["siteRoot"] + "SAML/SingleSignOnService",
-    //        LocalCertificates = new List<Certificate>()
-    //        {
-    //          new Certificate()
-    //          {
-    //            String = Configuration["auth:signingKey"],
-    //            Password = String.Empty
-    //          }
-    //        }
-    //      },
-    //      PartnerServiceProviderConfigurations= new []
-    //      {
-    //        new PartnerServiceProviderConfiguration
-    //        {
-    //          Name = Configuration["auth:saml:facebook:name"],
-    //          Description = "Facebook @ Work",
-    //          WantAuthnRequestSigned = false,
-    //          SignAssertion = true,
-    //          SignSamlResponse = false,
-    //          NameIDFormat = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-    //          AssertionConsumerServiceUrl = Configuration["auth:saml:facebook:acsUrl"],
-    //        }
-    //      }
-    //    }
-    //  };
-    //}
   }
 }
