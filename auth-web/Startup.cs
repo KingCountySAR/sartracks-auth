@@ -92,7 +92,7 @@ namespace SarData.Auth
 
       AddIdentityServer(services, configureDbAction);
 
-      services.AddTransient(typeof(SamlIdentityProvider), SamlPluginLoader.GetSamlPluginType(services, Configuration, env.ContentRootPath, servicesLogger));
+      services.AddSamlIfSupported(Configuration, servicesLogger);
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

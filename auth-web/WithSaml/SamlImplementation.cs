@@ -7,34 +7,39 @@ using Microsoft.Extensions.Logging;
 
 namespace SarData.Auth.Saml
 {
-  public class SamlImplementation : SamlIdentityProvider
+  /// <summary>
+  /// The SAML2 library is licensed and can't be checked into source control. This class provides an abstraction layer
+  /// around that library. Using conditional logic in the project file, an alternate (null) implemenation can be compiled in if
+  /// that library is not available.
+  /// </summary>
+  public class SamlImplementation
   {
     private readonly ISamlIdentityProvider samlIdentityProvider;
     private readonly ILogger<SamlImplementation> logger;
 
     public SamlImplementation(
       ISamlIdentityProvider samlIdentityProvider,
-      ILogger<SamlImplementation> logger) : base()
+      ILogger<SamlImplementation> logger)
     {
       logger.LogInformation("Created SamlImplementation");
       this.samlIdentityProvider = samlIdentityProvider;
       this.logger = logger;
     }
 
-    public override async Task ReceiveSsoAsync()
+    public async Task ReceiveSsoAsync()
     {
       logger.LogInformation("Receiving SSO");
 
       var something = await samlIdentityProvider.ReceiveSsoAsync();
     }
 
-    public override async Task<string> GetPendingPartner()
+    public async Task<string> GetPendingPartner()
     {
       var status = await samlIdentityProvider.GetStatusAsync();
       return status.GetPartnerPendingResponse();
     }
 
-    public override async Task CompleteSsoAsync(ClaimsPrincipal principal)
+    public async Task CompleteSsoAsync(ClaimsPrincipal principal)
     {
       var status = await samlIdentityProvider.GetStatusAsync();
       logger.LogInformation("Completing SAML SSO call");

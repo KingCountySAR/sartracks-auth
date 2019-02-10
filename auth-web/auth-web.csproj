@@ -10,6 +10,7 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.2' ">
     <PackageReference Include="Microsoft.AspNetCore.All" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="McMaster.NETCore.Plugins" Version="0.2.4" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.5.1" />
@@ -29,8 +30,19 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.2.1" PrivateAssets="All" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\saml-plugin\saml-plugin.csproj" />
+  <ItemGroup Condition="Exists('$(ProjectDir)ComponentSpace.Saml2.dll')">
+    <Reference Include="ComponentSpace.Saml2">
+      <HintPath>ComponentSpace.Saml2.dll</HintPath>
+    </Reference>
+    <Compile Remove="WithoutSaml\**" />
+    <Content Remove="WithoutSaml\**" />
+    <EmbeddedResource Remove="WithoutSaml\**" />
+    <None Remove="WithoutSaml\**" />
   </ItemGroup>
-
+  <ItemGroup Condition="!Exists('$(ProjectDir)ComponentSpace.Saml2.dll')">
+    <Compile Remove="WithSaml\**" />
+    <Content Remove="WithSaml\**" />
+    <EmbeddedResource Remove="WithSaml\**" />
+    <None Remove="WithSaml\**" />
+  </ItemGroup>
 </Project>

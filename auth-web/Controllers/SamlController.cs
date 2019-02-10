@@ -18,12 +18,12 @@ namespace SarData.Auth.Controllers
   [Route("[controller]/[action]")]
   public class SamlController : Controller
   {
-    private readonly SamlIdentityProvider samlProvider;
+    private readonly SamlImplementation samlProvider;
     private readonly ConfigurationDbContext configDb;
     private readonly ApplicationDbContext db;
 
     public SamlController(
-      SamlIdentityProvider samlProvider,
+      SamlImplementation samlProvider,
       ConfigurationDbContext configDb,
       ApplicationDbContext db
     )
