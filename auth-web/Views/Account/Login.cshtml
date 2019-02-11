@@ -2,14 +2,13 @@
 @using System.Linq
 @using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.Http.Authentication
+@using Newtonsoft.Json
 @model LoginViewModel
 @inject SignInManager<ApplicationUser> SignInManager
 @inject Microsoft.Extensions.Configuration.IConfiguration configuration
-
 @{
   ViewData["Title"] = "Log in";
 }
-
 <h2>@ViewData["Title"]</h2>
 <div class="row">
   <div class="col-md-4">
@@ -53,6 +52,7 @@
       <hr />
       @{
         var loginProviders = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+        var oidcConfigs = JsonConvert.DeserializeObject<OidcConfig[]>(string.IsNullOrWhiteSpace(configuration["auth:external:oidc"]) ? "[]" : configuration["auth:external:oidc"]).ToDictionary(f => f.Id, f => f);
         if (loginProviders.Count == 0)
         {
           <div>
@@ -69,8 +69,8 @@
               <p>
                 @foreach (var provider in loginProviders)
                 {
-                  var icon = provider.Name == "Facebook" ? "fa-facebook-square" : provider.Name == "Google" ? "fa-google" : configuration[$"auth:oidc:{provider.Name}:icon"];
-                  var color = provider.Name == "Facebook" ? "#3B5998" : provider.Name == "Google" ? "#EA4335" : configuration[$"auth:oidc:{provider.Name}:iconColor"];
+                  var icon = provider.Name == "Facebook" ? "fa-facebook-square" : provider.Name == "Google" ? "fa-google" : oidcConfigs[provider.Name].Icon;
+                  var color = provider.Name == "Facebook" ? "#3B5998" : provider.Name == "Google" ? "#EA4335" : oidcConfigs[provider.Name].IconColor;
 
                   <button type="submit" class="btn btn-default" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
                     <i class="fab fa-fw @icon" style="color: @color"></i> @provider.DisplayName
@@ -84,7 +84,6 @@
     </section>
   </div>
 </div>
-
 @section Scripts {
   @await Html.PartialAsync("_ValidationScriptsPartial")
 }

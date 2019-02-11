@@ -45,4 +45,7 @@
     <EmbeddedResource Remove="WithSaml\**" />
     <None Remove="WithSaml\**" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\common\api-clients\api-clients.csproj" />
+  </ItemGroup>
 </Project>

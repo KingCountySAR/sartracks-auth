@@ -1,8 +1,10 @@
-﻿@model ExternalLoginsViewModel
+﻿@using Newtonsoft.Json
+@model ExternalLoginsViewModel
 @inject Microsoft.Extensions.Configuration.IConfiguration configuration
 @{
   ViewData["Title"] = "Manage your external logins";
   ViewData.AddActivePage(ManageNavPages.ExternalLogins);
+  var oidcConfigs = JsonConvert.DeserializeObject<OidcConfig[]>(string.IsNullOrWhiteSpace(configuration["auth:external:oidc"]) ? "[]" : configuration["auth:external:oidc"]).ToDictionary(f => f.Id, f => f);
 }
 @await Html.PartialAsync("_StatusMessage", Model.StatusMessage)
 @if (Model.CurrentLogins?.Count > 0)
@@ -12,8 +14,8 @@
     <tbody>
       @foreach (var login in Model.CurrentLogins)
       {
-        var icon = login.LoginProvider == "Facebook" ? "fa-facebook-square" : login.LoginProvider == "Google" ? "fa-google" : configuration[$"auth:oidc:{login.LoginProvider}:icon"];
-        var color = login.LoginProvider == "Facebook" ? "#3B5998" : login.LoginProvider == "Google" ? "#EA4335" : configuration[$"auth:oidc:{login.LoginProvider}:iconColor"];
+        var icon = login.LoginProvider == "Facebook" ? "fa-facebook-square" : login.LoginProvider == "Google" ? "fa-google" : oidcConfigs[login.LoginProvider].Icon;
+        var color = login.LoginProvider == "Facebook" ? "#3B5998" : login.LoginProvider == "Google" ? "#EA4335" : oidcConfigs[login.LoginProvider].IconColor;
 
         <tr>
           <td><i class="fab fa-fw @icon" style="color: @color"></i> @login.LoginProvider</td>
@@ -48,8 +50,8 @@
         @foreach (var provider in Model.OtherLogins)
         {
           @*<button type="submit" class="btn btn-default" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>*@
-          var icon = provider.Name == "Facebook" ? "fa-facebook-square" : provider.Name == "Google" ? "fa-google" : configuration[$"auth:oidc:{provider.Name}:icon"];
-          var color = provider.Name == "Facebook" ? "#3B5998" : provider.Name == "Google" ? "#EA4335" : configuration[$"auth:oidc:{provider.Name}:iconColor"];
+          var icon = provider.Name == "Facebook" ? "fa-facebook-square" : provider.Name == "Google" ? "fa-google" : oidcConfigs[provider.Name].Icon;
+          var color = provider.Name == "Facebook" ? "#3B5998" : provider.Name == "Google" ? "#EA4335" : oidcConfigs[provider.Name].IconColor;
 
           <button type="submit" class="btn btn-default" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
             <i class="fab fa-fw @icon" style="color: @color"></i> @provider.DisplayName

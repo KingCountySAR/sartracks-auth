@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -15,8 +16,11 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SarData.Auth.Data;
 using SarData.Auth.Identity;
+using SarData.Auth.Models;
 using SarData.Auth.Saml;
 using SarData.Auth.Services;
 
@@ -184,33 +188,36 @@ namespace SarData.Auth
 
     private void AddExternalLogins(AuthenticationBuilder authBuilder)
     {
-      if (!string.IsNullOrWhiteSpace(Configuration["auth:facebook:appId"])
-        && !string.IsNullOrWhiteSpace(Configuration["auth:facebook:appSecret"]))
+      if (!string.IsNullOrWhiteSpace(Configuration["auth:external:facebook"]))
       {
+        JObject settings = JsonConvert.DeserializeObject<JObject>(Configuration["auth:external:facebook"]);
         authBuilder.AddFacebook(facebook =>
         {
-          facebook.AppId = Configuration["auth:facebook:appId"];
-          facebook.AppSecret = Configuration["auth:facebook:appSecret"];
+          facebook.AppId = settings["appId"].Value<string>();
+          facebook.AppSecret = settings["appSecret"].Value<string>();
         });
       }
-      if (!string.IsNullOrWhiteSpace(Configuration["auth:google:clientId"])
-        && !string.IsNullOrWhiteSpace(Configuration["auth:google:clientSecret"]))
+      if (!string.IsNullOrWhiteSpace(Configuration["auth:external:google"]))
       {
+        JObject settings = JsonConvert.DeserializeObject<JObject>(Configuration["auth:external:google"]);
         authBuilder.AddGoogle(google =>
         {
-          google.ClientId = Configuration["auth:google:clientId"];
-          google.ClientSecret = Configuration["auth:google:clientSecret"];
+          google.ClientId = settings["clientId"].Value<string>();
+          google.ClientSecret = settings["clientSecret"].Value<string>();
         });
       }
-      var oidcProviders = (Configuration["auth:oidc:providers"] ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim());
-      foreach (var provider in oidcProviders)
+      if (!string.IsNullOrWhiteSpace(Configuration["auth:external:oidc"]))
       {
-        authBuilder.AddOpenIdConnect(provider, Configuration[$"auth:oidc:{provider}:caption"], oidc =>
+        var oidcProviders = JsonConvert.DeserializeObject<OidcConfig[]>(Configuration["auth:external:oidc"]);
+        foreach (var provider in oidcProviders)
         {
-          oidc.Authority = Configuration[$"auth:oidc:{provider}:authority"];
-          oidc.ClientId = Configuration[$"auth:oidc:{provider}:clientId"];
-          oidc.ClientSecret = Configuration[$"auth:oidc:{provider}:clientSecret"];
-        });
+          authBuilder.AddOpenIdConnect(provider.Id, provider.Caption, oidc =>
+          {
+            oidc.Authority = provider.Authority;
+            oidc.ClientId = provider.ClientId;
+            oidc.ClientSecret = provider.ClientSecret;
+          });
+        }
       }
     }
 
