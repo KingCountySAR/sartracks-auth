@@ -23,6 +23,8 @@ using SarData.Auth.Identity;
 using SarData.Auth.Models;
 using SarData.Auth.Saml;
 using SarData.Auth.Services;
+using SarData.Common.Apis;
+using SarData.Common.Apis.Messaging;
 
 namespace SarData.Auth
 {
@@ -86,11 +88,19 @@ namespace SarData.Auth
 
       AddExternalLogins(services.AddAuthentication());
 
-      // Add application services.
-      //if (env.IsDevelopment())
-      //{
-      services.AddTransient<IMessagingService, TestMessagingService>();
-      //}
+      services.AddSingleton<ITokenClient, LocalTokenClient>();
+
+      string messagingUrl = Configuration["apis:messaging:url"];
+      if (string.IsNullOrWhiteSpace(messagingUrl))
+      {
+        servicesLogger.LogWarning("messaging API not configured. Using test implementation");
+        services.AddTransient<IMessagingApi, TestMessagingService>();
+      }
+      else
+      {
+        services.ConfigureApi<IMessagingApi>("messaging", Configuration);
+      }
+
 
       services.AddMvc();
 

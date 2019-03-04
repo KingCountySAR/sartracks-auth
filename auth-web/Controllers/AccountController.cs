@@ -13,6 +13,7 @@ using SarData.Auth.Identity;
 using SarData.Auth.Models;
 using SarData.Auth.Models.AccountViewModels;
 using SarData.Auth.Services;
+using SarData.Common.Apis.Messaging;
 
 namespace SarData.Auth.Controllers
 {
@@ -25,7 +26,7 @@ namespace SarData.Auth.Controllers
     private readonly ApplicationUserManager users;
     private readonly SignInManager<ApplicationUser> signin;
     private readonly IIdentityServerInteractionService interaction;
-    private readonly IMessagingService messaging;
+    private readonly IMessagingApi messaging;
     private readonly ILogger logger;
 
     public AccountController(
@@ -34,7 +35,7 @@ namespace SarData.Auth.Controllers
         ApplicationUserManager userManager,
         SignInManager<ApplicationUser> signInManager,
         IIdentityServerInteractionService interaction,
-        IMessagingService emailSender,
+        IMessagingApi emailSender,
         ILogger<AccountController> logger)
     {
       this.remoteMembers = remoteMembers;
@@ -330,11 +331,11 @@ namespace SarData.Auth.Controllers
 
           if (foundPhone)
           {
-            await messaging.SendTextAsync(model.Phone, "Your verification code: " + codeRow.Code);
+            await messaging.SendText(model.Phone, "Your verification code: " + codeRow.Code);
           }
           else
           {
-            await messaging.SendEmailAsync(model.Email, "Verification Code", "Your verificaton code: " + codeRow.Code);
+            await messaging.SendEmail(model.Email, "Verification Code", "Your verificaton code: " + codeRow.Code);
           }
 
           return View("ExternalVerify");
@@ -478,7 +479,7 @@ namespace SarData.Auth.Controllers
         // visit https://go.microsoft.com/fwlink/?LinkID=532713
         var code = await users.GeneratePasswordResetTokenAsync(user);
         var callbackUrl = Url.ResetPasswordCallbackLink(user.Id, code, Request.Scheme);
-        await messaging.SendEmailAsync(model.Email, "Reset Password",
+        await messaging.SendEmail(model.Email, "Reset Password",
            $"Please reset your password by clicking here: <a href='{callbackUrl}'>link</a>");
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
       }

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using SarData.Auth.Data;
 using SarData.Auth.Models.ManageViewModels;
 using SarData.Auth.Services;
+using SarData.Common.Apis.Messaging;
 
 namespace SarData.Auth.Controllers
 {
@@ -20,7 +21,7 @@ namespace SarData.Auth.Controllers
   {
     private readonly UserManager<ApplicationUser> users;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IMessagingService _emailSender;
+    private readonly IMessagingApi _emailSender;
     private readonly ILogger _logger;
     private readonly UrlEncoder _urlEncoder;
 
@@ -30,7 +31,7 @@ namespace SarData.Auth.Controllers
     public ManageController(
       UserManager<ApplicationUser> userManager,
       SignInManager<ApplicationUser> signInManager,
-      IMessagingService emailSender,
+      IMessagingApi emailSender,
       ILogger<ManageController> logger,
       UrlEncoder urlEncoder)
     {

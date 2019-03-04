@@ -18,6 +18,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "saml-plugin", "saml-plugin\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "saml-implementation", "saml-implementation\saml-implementation.csproj", "{A5B726F2-EAD5-406D-8A80-D818340ADEF8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api-clients", "..\common\api-clients\api-clients.csproj", "{1751991F-E577-48DA-94F4-AAB7ACD8D6BB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{EC54C101-549E-4E2D-92BF-0FFB7587E8BC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,12 +44,17 @@ Global
 		{A5B726F2-EAD5-406D-8A80-D818340ADEF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5B726F2-EAD5-406D-8A80-D818340ADEF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5B726F2-EAD5-406D-8A80-D818340ADEF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1751991F-E577-48DA-94F4-AAB7ACD8D6BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1751991F-E577-48DA-94F4-AAB7ACD8D6BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1751991F-E577-48DA-94F4-AAB7ACD8D6BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1751991F-E577-48DA-94F4-AAB7ACD8D6BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{83695174-6D8F-48C1-A4CD-D09550FB6647} = {F21D5E12-9D19-4479-B008-D7F6B3393C3F}
+		{1751991F-E577-48DA-94F4-AAB7ACD8D6BB} = {EC54C101-549E-4E2D-92BF-0FFB7587E8BC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DEEFB979-C20B-4274-887E-048DB19D3047}
