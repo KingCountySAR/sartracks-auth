@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SarData.Auth.Data;
-using SarData.Auth.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,6 +34,19 @@ namespace SarData.Auth.Identity
     public async Task<ApplicationUser> FindByMemberId(string memberId)
     {
       return await db.Users.Where(f => f.MemberId == memberId).OrderBy(f => f.Created).FirstOrDefaultAsync();
+    }
+
+    public async Task<List<string>> UsersRoles(string userId, bool? direct = false)
+    {
+      var roles = await db.UserRoles.Where(f => f.UserId == userId).Select(f => f.RoleId).ToListAsync();
+
+      if (!(direct ?? false))
+      {
+        var inherited = await db.UserRoles.Where(f => f.UserId == userId).SelectMany(f => f.Role.Ancestors).Select(f => f.ParentId).ToListAsync();
+        roles = roles.Union(inherited).Distinct().ToList();
+      }
+
+      return roles;
     }
 
     public override async Task<IList<ApplicationUser>> GetUsersInRoleAsync(string roleName)

@@ -6,7 +6,11 @@ using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using IdentityModel;
 using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -16,6 +20,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SarData.Auth.Data;
@@ -35,6 +40,7 @@ namespace SarData.Auth
     {
       Configuration = configuration;
       this.env = env;
+      this.logFactory = logFactory;
       servicesLogger = logFactory.CreateLogger("Startup");
     }
 
@@ -42,6 +48,7 @@ namespace SarData.Auth
 
     private readonly ILogger servicesLogger;
     private readonly IHostingEnvironment env;
+    private readonly ILoggerFactory logFactory;
     private Uri siteRoot;
     private bool useMigrations = true;
 
@@ -53,17 +60,6 @@ namespace SarData.Auth
     {
       siteRoot = new Uri(Configuration["siteRoot"]);
       Action<DbContextOptionsBuilder> configureDbAction = AddDatabases(services);
-
-      //if (env.IsDevelopment() && (string.IsNullOrEmpty(Configuration["api:root"]) || string.IsNullOrEmpty(Configuration["api:key"])))
-      //{
-      //  servicesLogger.LogInformation("Will read members from local members.json file");
-      //  services.AddSingleton<IRemoteMembersService>(new LocalFileMembersService());
-      //}
-      //else if (!(string.IsNullOrEmpty(Configuration["api:root"]) || string.IsNullOrEmpty(Configuration["api:key"])))
-      //{
-      //  servicesLogger.LogInformation("Will read members from API at " + Configuration["api:root"]);
-      //  services.AddSingleton<IRemoteMembersService>(new LegacyApiMemberService(Configuration["api:root"], Configuration["api:key"]));
-      //}
 
       services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
       services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(Configuration["store:connectionstring"]));
@@ -86,7 +82,16 @@ namespace SarData.Auth
         options.LoginPath = "/Login";
       });
 
-      AddExternalLogins(services.AddAuthentication());
+      var authSetup = services.AddAuthentication()
+      .AddJwtBearer(options =>
+      {
+        options.Authority = siteRoot.AbsoluteUri;
+        options.Audience = "auth-api";
+        options.SaveToken = true;
+        options.RequireHttpsMetadata = !env.IsDevelopment();
+      });
+
+      AddExternalLogins(authSetup);
 
       services.AddSingleton<ITokenClient, LocalTokenClient>();
 
@@ -101,7 +106,13 @@ namespace SarData.Auth
         services.ConfigureApi<IMessagingApi>("messaging", Configuration);
       }
 
-
+      services.AddCors(options =>
+      {
+        options.AddDefaultPolicy(builder =>
+        {
+          builder.AllowAnyOrigin().AllowAnyHeader().AllowCredentials();
+        });
+      });
       services.AddMvc();
 
       AddIdentityServer(services, configureDbAction);
@@ -174,6 +185,8 @@ namespace SarData.Auth
         });
 
         innerApp.UseStaticFiles();
+
+        innerApp.UseCors();
 
         innerApp.UseIdentityServer();
 

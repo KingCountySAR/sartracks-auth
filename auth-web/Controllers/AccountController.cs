@@ -222,7 +222,13 @@ namespace SarData.Auth.Controllers
       return View();
     }
 
-    [HttpPost]
+    [HttpGet("/Account/Logout")]
+    public ActionResult StartLogout()
+    {
+      return View("Logout");
+    }
+
+    [HttpPost("/Account/Logout")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {

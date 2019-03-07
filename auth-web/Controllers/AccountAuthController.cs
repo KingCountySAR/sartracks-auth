@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SarData.Auth.Identity;
 using System.Threading.Tasks;
 
 namespace auth_web.Controllers
 {
-  [Authorize]
+  [Authorize(AuthenticationSchemes = AuthSchemes)]
   [Route("Account/[action]")]
   public class AccountAuthController : Controller
   {
+    private const string AuthSchemes = JwtBearerDefaults.AuthenticationScheme;
+
     private readonly ApplicationUserManager userManager;
     private readonly ApplicationRoleManager roleManager;
 
@@ -28,6 +31,17 @@ namespace auth_web.Controllers
           IsInGroup = await userManager.UserIsInRole(userId, groupId)
         }
       };
+      return Ok(data);
+    }
+
+    [HttpGet("/Account/{userId}/Groups")]
+    public async Task<IActionResult> GetGroups(string userId, [FromQuery] bool? direct = false)
+    {
+      var data = new
+      {
+        Data = await userManager.UsersRoles(userId, direct)
+      };
+
       return Ok(data);
     }
   }
