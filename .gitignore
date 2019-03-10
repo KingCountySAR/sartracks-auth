@@ -14,4 +14,4 @@ auth-web/signing-key-public.txt
 auth-web/plugins/
 logs/
 
-ComponentSpace.Saml2.dll
+ComponentSpace.Saml2.*

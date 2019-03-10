@@ -1,16 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using IdentityModel;
 using IdentityServer4.EntityFramework.DbContexts;
-using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -20,13 +14,11 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SarData.Auth.Data;
 using SarData.Auth.Identity;
 using SarData.Auth.Models;
-using SarData.Auth.Saml;
 using SarData.Auth.Services;
 using SarData.Common.Apis;
 using SarData.Common.Apis.Messaging;
@@ -36,19 +28,17 @@ namespace SarData.Auth
   public class Startup
   {
 
-    public Startup(IConfiguration configuration, IHostingEnvironment env, ILoggerFactory logFactory)
+    public Startup(IConfiguration configuration, IHostingEnvironment env, ILogger<Startup> logger)
     {
       Configuration = configuration;
       this.env = env;
-      this.logFactory = logFactory;
-      servicesLogger = logFactory.CreateLogger("Startup");
+      startupLogger = logger;
     }
 
     public IConfiguration Configuration { get; }
 
-    private readonly ILogger servicesLogger;
+    private readonly ILogger startupLogger;
     private readonly IHostingEnvironment env;
-    private readonly ILoggerFactory logFactory;
     private Uri siteRoot;
     private bool useMigrations = true;
 
@@ -59,6 +49,7 @@ namespace SarData.Auth
     public void ConfigureServices(IServiceCollection services)
     {
       siteRoot = new Uri(Configuration["siteRoot"]);
+
       Action<DbContextOptionsBuilder> configureDbAction = AddDatabases(services);
 
       services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
@@ -98,7 +89,7 @@ namespace SarData.Auth
       string messagingUrl = Configuration["apis:messaging:url"];
       if (string.IsNullOrWhiteSpace(messagingUrl))
       {
-        servicesLogger.LogWarning("messaging API not configured. Using test implementation");
+        startupLogger.LogWarning("messaging API not configured. Using test implementation");
         services.AddTransient<IMessagingApi, TestMessagingService>();
       }
       else
@@ -117,11 +108,11 @@ namespace SarData.Auth
 
       AddIdentityServer(services, configureDbAction);
 
-      services.AddSamlIfSupported(Configuration, servicesLogger);
+      services.AddSamlIfSupported(Configuration, startupLogger);
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+    public void Configure(IApplicationBuilder app, IHostingEnvironment env)
     {
       using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
       {
@@ -162,8 +153,6 @@ namespace SarData.Auth
         var seeder = serviceScope.ServiceProvider.GetRequiredService<OidcSeeder>();
         seeder.Seed();
       }
-
-      loggerFactory.AddApplicationInsights(app.ApplicationServices, LogLevel.Information);
 
       Action<IApplicationBuilder> configure = innerApp =>
       {
@@ -292,7 +281,7 @@ namespace SarData.Auth
 
       if (string.IsNullOrEmpty(Configuration["auth:signingKey"]))
       {
-        servicesLogger.LogWarning("Using development signing certificate");
+        startupLogger.LogWarning("Using development signing certificate");
         identityServer.AddDeveloperSigningCredential();
       }
       else
@@ -304,7 +293,7 @@ namespace SarData.Auth
             Convert.ToBase64String(encodedPublicKey, Base64FormattingOptions.InsertLineBreaks),
             "-----END PUBLIC KEY-----",
         });
-        servicesLogger.LogInformation($"Signing certificate {cert.FriendlyName} expiring {cert.GetExpirationDateString()}");
+        startupLogger.LogInformation($"Signing certificate {cert.FriendlyName} expiring {cert.GetExpirationDateString()}");
         identityServer.AddSigningCredential(cert);
       }
     }

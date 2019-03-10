@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore;
+﻿using System;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using System;
+using SarData.Logging;
 
 namespace SarData.Auth
 {
@@ -12,7 +13,8 @@ namespace SarData.Auth
       BuildWebHost(args).Run();
     }
 
-    public static IWebHost BuildWebHost(string[] args) {
+    public static IWebHost BuildWebHost(string[] args)
+    {
       var builder = WebHost.CreateDefaultBuilder(args);
       var insightsKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
       if (!string.IsNullOrWhiteSpace(insightsKey))
@@ -22,11 +24,13 @@ namespace SarData.Auth
 
       return builder
         .UseStartup<Startup>()
-        .ConfigureAppConfiguration(config =>
+        .ConfigureAppConfiguration((context, config) =>
         {
-          config.AddJsonFile("appsettings.json", true, false)
-                .AddJsonFile("appsettings.local.json", true, false)
-                .AddEnvironmentVariables();
+          config.AddConfigFiles(context.HostingEnvironment.EnvironmentName);
+        })
+        .ConfigureLogging(logBuilder =>
+        {
+          logBuilder.AddSarDataLogging();
         })
         .Build();
     }
