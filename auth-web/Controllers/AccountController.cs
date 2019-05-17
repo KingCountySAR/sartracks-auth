@@ -462,9 +462,15 @@ namespace SarData.Auth.Controllers
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult ForgotPassword()
+    public async Task<IActionResult> ForgotPassword(string username)
     {
-      return View();
+      if (string.IsNullOrWhiteSpace(username)) {
+        return View();
+      }
+      else
+      {
+        return await ForgotPassword(new ForgotPasswordViewModel { Username = username });
+      }
     }
 
     [HttpPost]
@@ -474,19 +480,26 @@ namespace SarData.Auth.Controllers
     {
       if (ModelState.IsValid)
       {
-        var user = await users.FindByEmailAsync(model.Email);
-        if (user == null || !(await users.IsEmailConfirmedAsync(user)))
+        ApplicationUser user;
+        if (!string.IsNullOrWhiteSpace(model.Email)) {
+          user = await users.FindByEmailAsync(model.Email);
+          if (user != null && !(await users.IsEmailConfirmedAsync(user))) user = null;
+        }
+        else
         {
-          // Don't reveal that the user does not exist or is not confirmed
-          return RedirectToAction(nameof(ForgotPasswordConfirmation));
+          user = await users.FindByNameAsync(model.Username);
         }
 
-        // For more information on how to enable account confirmation and password reset please
-        // visit https://go.microsoft.com/fwlink/?LinkID=532713
-        var code = await users.GeneratePasswordResetTokenAsync(user);
-        var callbackUrl = Url.ResetPasswordCallbackLink(user.Id, code, Request.Scheme);
-        await messaging.SendEmail(model.Email, "Reset Password",
-           $"Please reset your password by clicking here: <a href='{callbackUrl}'>link</a>");
+        if (user != null)
+        {
+          // For more information on how to enable account confirmation and password reset please
+          // visit https://go.microsoft.com/fwlink/?LinkID=532713
+          var code = await users.GeneratePasswordResetTokenAsync(user);
+          var callbackUrl = Url.ResetPasswordCallbackLink(user.Id, code, Request.Scheme);
+          await messaging.SendEmail(user.Email, "Reset Password",
+            $"Please reset your password by clicking here: <a href='{callbackUrl}'>link</a><br/><br/>Sent to email address {user.Email}.");
+        }
+
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
       }
 
