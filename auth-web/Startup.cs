@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using IdentityModel;
 using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -107,6 +108,7 @@ namespace SarData.Auth
       services.AddMvc();
 
       AddIdentityServer(services, configureDbAction);
+      services.AddTransient<IProfileService, MemberProfileService>();
 
       services.AddSamlIfSupported(Configuration, startupLogger);
     }
