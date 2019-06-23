@@ -50,7 +50,8 @@ namespace auth_web.Controllers
                                Email = u.Email,
                                UserName = EF.Functions.Like(u.UserName, "@%") ? "@" : u.UserName, //.StartsWith('@') ? "@" : u.UserName,
                                IsLocked = u.LockoutEnd.HasValue,
-                               LockoutEnd = u.LockoutEnd
+                               LockoutEnd = u.LockoutEnd,
+                               LastLogin = u.LastLogin
                              });
       var totalCount = await unfilteredQuery.CountAsync();
 
@@ -78,7 +79,8 @@ namespace auth_web.Controllers
             LockoutEnd = f.LockoutEnd,
             MemberId = f.MemberId,
             Name = f.Name,
-            UserName = f.UserName
+            UserName = f.UserName,
+            LastLogin = f.LastLogin
           }
         })
         .Skip((page["number"] - 1) * page["size"])

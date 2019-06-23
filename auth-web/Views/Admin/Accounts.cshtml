@@ -7,14 +7,21 @@
 <table id="accountTable" class="table table-striped table-bordered table-hover"></table>
 
 @section Head {
-  <link rel="stylesheet" type="text/css" href="/lib/datatables/datatables.min.css" />
+  <link rel="stylesheet" type="text/css" href="~/lib/datatables/datatables.min.css" />
   <style type="text/css">
-    .dt-body-center { text-align: center; }
-    .dt-nowrap {white-space: nowrap}
+    .dt-body-center {
+      text-align: center;
+    }
+
+    .dt-nowrap {
+      white-space: nowrap
+    }
   </style>
 }
 @section Scripts {
-  <script type="text/javascript" src="/lib/datatables/datatables.min.js"></script>
+  <script type="text/javascript" src="~/lib/datatables/datatables.min.js"></script>
+  <script type="text/javascript" src="~/lib/moment.min.js"></script>
+  <script type="text/javascript" src="~/lib/moment-timezone-with-data.min.js"></script>
   <script>
     (function () {
       var table = $('#accountTable').DataTable({
@@ -40,12 +47,12 @@
             })
         },
         columns: [
-          //{ title: 'Id', data: 'id' },
           { title: 'Name', data: 'attributes.name', className: 'dt-nowrap' },
           { title: 'Last Name', data: 'attributes.lastName' },
           { title: 'Email', data: 'attributes.email' },
           { title: 'User Name', data: 'attributes.userName', render: function (data) { return data === '@("@")' ? '<i>External Login</i>' : data; } },
-          { title: 'Locked?', data: 'attributes.isLocked', className: 'dt-body-center', render: function (data) { return data ? '<i class="fa fa-lock"></i>' : '' }}
+          { title: 'Locked?', data: 'attributes.isLocked', className: 'dt-body-center', render: function (data) { return data ? '<i class="fa fa-lock"></i>' : '' } },
+          { title: 'Last Login', data: 'attributes.lastLogin', render: function (data) { return data ? moment(data).tz("America/Los_Angeles").calendar() : '<i>Never</i>' } }
         ]
       });
 

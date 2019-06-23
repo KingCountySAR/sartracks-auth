@@ -15,5 +15,6 @@ namespace SarData.Auth.Models.AdminViewModels
     public string MemberId { get; set; }
     public bool IsLocked { get; set; }
     public DateTimeOffset? LockoutEnd { get; set; }
+    public DateTimeOffset? LastLogin { get; internal set; }
   }
 }
