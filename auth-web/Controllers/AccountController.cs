@@ -431,6 +431,7 @@ namespace SarData.Auth.Controllers
         logger.LogInformation($"User created for {member.FirstName} {member.LastName}. Will link to {info.ProviderDisplayName} login.");
       }
 
+      info.ProviderDisplayName += " - " + (info.Principal.FindFirstValue(ClaimTypes.Email) ?? "unknown");
       result = await users.AddLoginAsync(user, info);
       if (!result.Succeeded)
       {

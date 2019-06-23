@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -264,7 +265,6 @@ namespace SarData.Auth.Controllers
 
       var model = new ExternalLoginsViewModel { CurrentLogins = await users.GetLoginsAsync(user) };
       model.OtherLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync())
-          .Where(auth => model.CurrentLogins.All(ul => auth.Name != ul.LoginProvider))
           .ToList();
       model.ShowRemoveButton = await users.HasPasswordAsync(user) || model.CurrentLogins.Count > 1;
       model.StatusMessage = StatusMessage;
@@ -300,8 +300,18 @@ namespace SarData.Auth.Controllers
         throw new ApplicationException($"Unexpected error occurred loading external login info for user with ID '{user.Id}'.");
       }
 
+      info.ProviderDisplayName += " - " + (info.Principal.FindFirstValue(ClaimTypes.Email) ?? "unknown");
       var result = await users.AddLoginAsync(user, info);
-      if (!result.Succeeded)
+
+      if (result.Succeeded)
+      {
+        StatusMessage = "The external login was added.";
+      }
+      else if (result.Errors.Any(f => f.Code.Equals("LoginAlreadyAssociated", StringComparison.OrdinalIgnoreCase)))
+      {
+        StatusMessage = "Warning: The external login was already linked - no changes were made.";
+      }
+      else
       {
         throw new ApplicationException($"Unexpected error occurred adding external login for user with ID '{user.Id}'.");
       }
@@ -309,7 +319,6 @@ namespace SarData.Auth.Controllers
       // Clear the existing external cookie to ensure a clean login process
       await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
-      StatusMessage = "The external login was added.";
       return RedirectToAction(nameof(ExternalLogins));
     }
 

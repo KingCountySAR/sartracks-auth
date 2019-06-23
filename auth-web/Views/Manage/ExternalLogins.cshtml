@@ -18,7 +18,7 @@
         var color = login.LoginProvider == "Facebook" ? "#3B5998" : login.LoginProvider == "Google" ? "#EA4335" : oidcConfigs[login.LoginProvider].IconColor;
 
         <tr>
-          <td><i class="fab fa-fw @icon" style="color: @color"></i> @login.LoginProvider</td>
+          <td><i class="fab fa-fw @icon" style="color: @color"></i> @login.ProviderDisplayName</td>
           <td>
             @if (Model.ShowRemoveButton)
             {

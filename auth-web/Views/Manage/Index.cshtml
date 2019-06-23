@@ -11,12 +11,11 @@
       <div asp-validation-summary="All" class="text-danger"></div>
       <div class="form-group">
         <label asp-for="Username"></label>
-        <input asp-for="Username" class="form-control" readonly="@(string.IsNullOrEmpty(Model.Username) ? null : "readonly" )" />
+        <input asp-for="Username" class="form-control" readonly="readonly" )" />
         @if (string.IsNullOrEmpty(Model.Username))
         {
           <p class="help-block">
-            You may set your username, which will allow you to set a password and sign in without using an external account. Once you've picked a username
-            you will not be allowed to change it. Usernames based on your name (first or last) are preferred.
+            You do not have a username for this site. Instead, you are required to login using one of your linked <a href="/Manage/ExternalLogins">external logins</a>.
           </p>
         }
       </div>
