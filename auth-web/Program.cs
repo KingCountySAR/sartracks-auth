@@ -23,15 +23,18 @@ namespace SarData.Auth
         builder = builder.UseApplicationInsights(insightsKey);
       }
 
+      string contentRoot = "";
+
       return builder
         .UseStartup<Startup>()
         .ConfigureAppConfiguration((context, config) =>
         {
+          contentRoot = context.HostingEnvironment.ContentRootPath;
           config.AddConfigFiles(context.HostingEnvironment.EnvironmentName);
         })
         .ConfigureLogging(logBuilder =>
         {
-          logBuilder.AddSarDataLogging();
+          logBuilder.AddSarDataLogging(contentRoot);
         })
         .Build();
     }

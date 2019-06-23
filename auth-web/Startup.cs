@@ -235,7 +235,6 @@ namespace SarData.Auth
       }
     }
 
-
     private Action<DbContextOptionsBuilder> AddDatabases(IServiceCollection services)
     {
       string connectionString = Configuration.GetValue<string>("store:connectionString");
