@@ -50,4 +50,7 @@
     <ProjectReference Include="..\..\common\api-clients\api-clients.csproj" />
     <ProjectReference Include="..\..\common\shared-infrastructure\shared-infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="wwwroot\lib\datatables\" />
+  </ItemGroup>
 </Project>
