@@ -3,6 +3,8 @@ obj/
 bin/
 *.user
 
+PublishProfiles/
+
 .leu
 seed.json
 dev-store.db
@@ -13,5 +15,6 @@ auth-web/seed-oidc.json
 auth-web/signing-key-public.txt
 auth-web/plugins/
 logs/
+log-*.txt
 
 ComponentSpace.Saml2.*
