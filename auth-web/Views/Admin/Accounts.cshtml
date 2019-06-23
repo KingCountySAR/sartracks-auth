@@ -27,6 +27,7 @@
       var table = $('#accountTable').DataTable({
         serverSide: true,
         select: true,
+        pageLength: 25,
         ajax: function (data, callback, settings) {
           console.log('table data', data)
           url = '/admin/api/accounts?page[number]=' + Math.floor(1 + data.start / data.length) + '&page[size]=' + data.length;

@@ -11,6 +11,7 @@ namespace SarData.Auth
     public static void Main(string[] args)
     {
       Console.WriteLine("Authentication site process " + System.Diagnostics.Process.GetCurrentProcess().Id);
+      Console.Title = $"Auth {System.Diagnostics.Process.GetCurrentProcess().Id}";
       BuildWebHost(args).Run();
     }
 

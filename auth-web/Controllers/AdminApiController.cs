@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using SarData;
 using SarData.Auth.Data;
 using SarData.Auth.Models.AdminViewModels;
@@ -25,8 +26,13 @@ namespace auth_web.Controllers
 
     [HttpGet("/admin/api/accounts")]
     [JsonApi]
-    public async Task<ActionResult> ListUsers(Dictionary<string, int> page, string filter, string sort)
+    public async Task<ActionResult> ListUsers(Dictionary<string, int> page, Dictionary<string,string> filter, string sort)
     {
+      if (!filter.ContainsKey(string.Empty) && Request.Query.TryGetValue("filter", out StringValues standaloneFilter) && standaloneFilter.Count == 1 && !string.IsNullOrWhiteSpace(standaloneFilter[0]))
+      {
+        filter.Add(string.Empty, standaloneFilter[0]);
+      }
+
       page = page ?? new Dictionary<string, int>();
 
       page.TryAdd("size", 100);
@@ -57,9 +63,10 @@ namespace auth_web.Controllers
 
       var query = unfilteredQuery;
       int filteredCount = totalCount;
-      if (!string.IsNullOrWhiteSpace(filter))
+
+      if (filter.TryGetValue("", out string globalFilter) && !string.IsNullOrWhiteSpace(globalFilter))
       {
-        query = query.Where(f => f.Name.Contains(filter) || f.Email.Contains(filter) || f.UserName.Contains(filter));
+        query = query.Where(f => f.Name.Contains(globalFilter) || f.Email.Contains(globalFilter) || f.UserName.Contains(globalFilter));
         filteredCount = await query.CountAsync();
       }
 
@@ -80,7 +87,8 @@ namespace auth_web.Controllers
             MemberId = f.MemberId,
             Name = f.Name,
             UserName = f.UserName,
-            LastLogin = f.LastLogin
+            LastLogin = f.LastLogin,
+            IsLocked = f.IsLocked
           }
         })
         .Skip((page["number"] - 1) * page["size"])
