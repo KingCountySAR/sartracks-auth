@@ -15,6 +15,8 @@ namespace SarData.Auth.Data
     [JsonIgnore]
     public bool IsMember { get { return !string.IsNullOrEmpty(MemberId); } }
 
+    public DateTimeOffset? LastLogin { get; set; }
+
     public DateTimeOffset Created { get; set; }
 
     public ICollection<UserOrganization> CustomOrganizations { get; set; }

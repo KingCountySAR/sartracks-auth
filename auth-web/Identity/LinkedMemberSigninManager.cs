@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -46,9 +47,16 @@ namespace SarData.Auth.Identity
       return principal;
     }
 
-    public override Task SignInAsync(ApplicationUser user, AuthenticationProperties authenticationProperties, string authenticationMethod = null)
+    public override async Task SignInAsync(ApplicationUser user, AuthenticationProperties authenticationProperties, string authenticationMethod = null)
     {
-      return base.SignInAsync(user, authenticationProperties, authenticationMethod);
+      DateTimeOffset now = DateTimeOffset.UtcNow;
+      if (!user.LastLogin.HasValue || (now - user.LastLogin.Value).TotalMinutes > 1)
+      {
+        user.LastLogin = now;
+        await UserManager.UpdateAsync(user);
+      }
+      
+      await base.SignInAsync(user, authenticationProperties, authenticationMethod);
     }
 
     public override Task SignInAsync(ApplicationUser user, bool isPersistent, string authenticationMethod = null)
