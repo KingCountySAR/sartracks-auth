@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -111,6 +112,12 @@ namespace SarData.Auth
       services.AddTransient<IProfileService, MemberProfileService>();
 
       services.AddSamlIfSupported(Configuration, startupLogger);
+
+      // In production, the React files will be served from this directory
+      services.AddSpaStaticFiles(configuration =>
+      {
+        configuration.RootPath = "frontend/build";
+      });
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -176,6 +183,7 @@ namespace SarData.Auth
         });
 
         innerApp.UseStaticFiles();
+        innerApp.UseSpaStaticFiles();
 
         innerApp.UseCors();
 
@@ -186,6 +194,16 @@ namespace SarData.Auth
           routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
+        });
+
+        innerApp.UseSpa(spa =>
+        {
+          spa.Options.SourcePath = "frontend";
+
+          if (env.IsDevelopment())
+          {
+            spa.UseReactDevelopmentServer(npmScript: "start");
+          }
         });
       };
 
