@@ -16,3 +16,16 @@ html {
 .box-shadow {
   box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
 }
+
+.flex-grow {
+  flex: 1 1 auto;
+}
+
+.nav-item > .btn-link:not(:disabled):not(.disabled):active:focus {
+  box-shadow: none;
+}
+
+.nav-item > .btn-link {
+  background-color: inherit;
+  border: inherit;
+}

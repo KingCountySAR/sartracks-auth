@@ -54,6 +54,7 @@ namespace SarData.Auth
 
       Action<DbContextOptionsBuilder> configureDbAction = AddDatabases(services);
 
+      services.AddSingleton(Configuration);
       services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
       services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(Configuration["store:connectionstring"]));
 

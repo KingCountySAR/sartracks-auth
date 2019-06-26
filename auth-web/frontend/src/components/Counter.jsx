@@ -1,4 +1,9 @@
 import React, { Component } from 'react';
+import AuthRoute from './auth/AuthRoute';
+
+const Inner = (props) => {
+  return 'you are logged in'
+}
 
 export class Counter extends Component {
   static displayName = Counter.name;
@@ -21,7 +26,7 @@ export class Counter extends Component {
         <h1>Counter</h1>
 
         <p>This is a simple example of a React component.</p>
-
+<AuthRoute component={Inner} denied='no authed'></AuthRoute>
         <p>Current count: <strong>{this.state.currentCount}</strong></p>
 
         <button className="btn btn-primary" onClick={this.incrementCounter}>Increment</button>

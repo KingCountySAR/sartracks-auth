@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using SarData.Auth.Data;
 using SarData.Auth.Models;
 using SarData.Common.Apis.Messaging;
@@ -35,6 +38,18 @@ namespace SarData.Auth.Controllers
     public IActionResult Error()
     {
       return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+
+    [HttpGet("/react-config")]
+    public IActionResult ReactConfig([FromServices] IConfiguration config)
+    {
+      return Content("window.reactConfig = " + JsonConvert.SerializeObject(new
+      {
+        Auth = new
+        {
+          Authority = "/"
+        }
+      }, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() }));
     }
 
     [Authorize]
