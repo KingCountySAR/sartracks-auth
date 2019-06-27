@@ -414,6 +414,8 @@ namespace SarData.Auth.Controllers
           Email = member.PrimaryEmail,
           MemberId = member.Id,
           PhoneNumber = member.PrimaryPhone,
+          FirstName = member.FirstName,
+          LastName = member.LastName,
           Created = DateTimeOffset.UtcNow
         };
         result = await users.CreateAsync(user);
@@ -422,11 +424,6 @@ namespace SarData.Auth.Controllers
           AddErrors(result);
           return false;
         }
-        List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, $"{member.FirstName}{nameSpacer}{member.LastName}") };
-        if (!string.IsNullOrEmpty(member.FirstName)) claims.Add(new Claim(ClaimTypes.GivenName, member.FirstName));
-        if (!string.IsNullOrEmpty(member.LastName)) claims.Add(new Claim(ClaimTypes.Surname, member.LastName));
-        if (!string.IsNullOrEmpty(member.PrimaryEmail)) claims.Add(new Claim(ClaimTypes.Email, member.PrimaryEmail));
-        await users.AddClaimsAsync(user, claims);
 
         logger.LogInformation($"User created for {member.FirstName} {member.LastName}. Will link to {info.ProviderDisplayName} login.");
       }

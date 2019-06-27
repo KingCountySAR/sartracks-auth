@@ -2,10 +2,11 @@ import { createStore, applyMiddleware, combineReducers } from 'redux'
 import thunkMiddleware from 'redux-thunk'
 import { createLogger } from 'redux-logger'
 
-import oidc from './reducers/oidc-reducer'
+import { reducer as oidc } from './redux/oidc'
+import { reducer as accounts } from './redux/accounts'
 
 const defaultState = {
-  oidc: { signedIn: false, user: null },
+  oidc: { signedIn: false, user: null }
 }
 
 const middleware = [
@@ -18,7 +19,8 @@ if(process.env.NODE_ENV === 'development' || (localStorage && localStorage.showL
 }
 
 const rootReducer = combineReducers({
-  oidc
+  oidc,
+  accounts
 })
 
 const store = createStore(

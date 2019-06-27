@@ -28,7 +28,7 @@ class LoginCallback extends Component {
           }
         }}
       >
-        <div>Redirecting...</div>
+        <div><i className='fas fa-spin fa-spinner'></i> Finishing login</div>
       </CallbackComponent>
     );
   }

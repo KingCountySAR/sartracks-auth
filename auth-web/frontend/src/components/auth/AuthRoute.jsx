@@ -1,6 +1,6 @@
 import React, {Component} from "react";
 import { Route } from "react-router-dom";
-import PropTypes from "prop-types";
+//import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import userManager from '../../user-manager';
 
@@ -20,7 +20,7 @@ class ForceLogin extends Component {
   }
 }
 
-const AuthRoute = ({ component: Component, denied, loading, oidc, ...rest }) => {
+const AuthRoute = React.memo(({ component: Component, denied, loading, oidc, ...rest }) => {
   return (
     <Route
       {...rest}
@@ -35,13 +35,13 @@ const AuthRoute = ({ component: Component, denied, loading, oidc, ...rest }) => 
       }}
     />
   );
-};
+});
 
-AuthRoute.propTypes = {
-  denied: PropTypes.node,
-  component: PropTypes.func.isRequired,
-  oidc: PropTypes.object.isRequired
-};
+// AuthRoute.propTypes = {
+//   denied: PropTypes.node,
+//   component: PropTypes.func.isRequired,
+//   oidc: PropTypes.object.isRequired
+// };
 
 function mapStateToProps(state) {
   return {

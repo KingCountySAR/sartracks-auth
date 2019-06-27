@@ -1,0 +1,24 @@
+table.table > tbody > tr > td.dt-actions {
+  white-space: nowrap;
+  width: 50px;
+}
+
+.dt-actions > a, .dt-actions > button {
+  vertical-align: middle;
+  width: 3rem;
+  display: inline-block;
+  text-align: center;
+  border-width: 0px;
+}
+.dt-actions > .btn {
+  padding: 0;
+}
+
+td.dt-child {
+  background-color: white;
+  border: 1px solid #7abaff;
+}
+
+button.page-link {
+  border-radius: 0;
+}
