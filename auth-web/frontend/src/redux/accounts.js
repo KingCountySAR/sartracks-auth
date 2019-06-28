@@ -19,13 +19,16 @@ const tableReducer = tableReducerFactory('accounts_list');
 export function reducer(state = { list: { opts: { size: 25, page: 1, selectMode: SELECT_MODE_SINGLE }, data: [] }}, action) {
   switch (action.type) {
     case 'accounts/LOGINS_LOADED':
-      var mru = [ ...((state.details || {})._mru || []) ];
+      var mru = [ ...((state.details || {}).mru || []) ];
       mru.push(action.user);
       var details = (state.details || {})[action.user];
       details = { ...details, logins: action.payload.data }
 
-      // TODO - use _mru to trim the list of accounts
-      return {...state, details: { ...state.details, [action.user]: details, _mru: mru }};
+      const detailsList = { ...state.details, mru };
+      detailsList[action.user] = details;
+      if (mru.length > 10) delete detailsList[mru.shift()];
+
+      return {...state, details: detailsList};
 
     default:
       return {...state, list: tableReducer(state.list, action)};
