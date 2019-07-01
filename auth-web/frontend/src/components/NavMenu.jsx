@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import './NavMenu.css';
 import userManager from '../user-manager';
+import { ActionsFactory } from '../redux/oidc';
+
+const Actions = ActionsFactory(userManager);
 
 class NavMenu extends Component {
   static displayName = NavMenu.name;
@@ -28,14 +31,13 @@ class NavMenu extends Component {
     userManager.signinRedirect();
   }
 
-  onLogoutButtonClick(event) {
+  onLogoutButtonClick = (event) => {
     event.preventDefault();
-    userManager.signoutRedirect();
+    this.props.doSignout();
   }
 
   render () {
     const { oidc } = this.props;
-
     return (
       <header>
         <Navbar className="navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3" light>
@@ -75,4 +77,10 @@ function mapStateToProps(state) {
   };
 }
 
-export default connect(mapStateToProps)(NavMenu);
+function mapDispatchToProps(dispatch) {
+  return {
+    doSignout: () => dispatch(Actions.doSignout())
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(NavMenu);

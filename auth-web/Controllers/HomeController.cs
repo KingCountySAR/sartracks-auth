@@ -45,9 +45,17 @@ namespace SarData.Auth.Controllers
     {
       return Content("window.reactConfig = " + JsonConvert.SerializeObject(new
       {
-        Auth = new
+        auth = new
         {
-          Authority = "/"
+          authority = "/",
+          client_id = config["apis:frontend:client_id"]
+        },
+        apis = new
+        {
+          data = new
+          {
+            url = (config["apis:database"] ?? "").TrimEnd('/')
+          }
         }
       }, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() }));
     }

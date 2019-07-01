@@ -89,7 +89,7 @@ namespace SarData.Auth
 
       services.AddSingleton<ITokenClient, LocalTokenClient>();
 
-      string messagingUrl = Configuration["apis:messaging:url"];
+      string messagingUrl = Configuration["apis:messaging"];
       if (string.IsNullOrWhiteSpace(messagingUrl))
       {
         startupLogger.LogWarning("messaging API not configured. Using test implementation");

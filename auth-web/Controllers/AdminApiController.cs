@@ -32,7 +32,7 @@ namespace auth_web.Controllers
       this.configuration = configuration;
     }
 
-    [HttpGet("/admin/api/account/{userId}")]
+    [HttpGet("/api/admin/account/{userId}")]
     [JsonApi]
     public async Task<ActionResult> GetUser(string userId)
     {
@@ -79,7 +79,7 @@ namespace auth_web.Controllers
       });
     }
 
-    [HttpGet("/admin/api/accounts")]
+    [HttpGet("/api/admin/accounts")]
     [JsonApi]
     public async Task<ActionResult> ListUsers(Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
@@ -127,7 +127,7 @@ namespace auth_web.Controllers
         ));
     }
     
-    [HttpGet("/admin/api/Accounts/{userId}/ExternalLogins")]
+    [HttpGet("/api/admin/Accounts/{userId}/ExternalLogins")]
     [JsonApi]
     public async Task<ActionResult> ListUserLogins(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {

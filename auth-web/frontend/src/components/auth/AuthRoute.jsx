@@ -10,7 +10,7 @@ class ForceLogin extends Component {
     this.redirect = props.redirect;
   }
 
-  componentDidMount(abc) {
+  componentDidMount() {
     sessionStorage.setItem('redirect', this.redirect);
     userManager.signinRedirect();
   }
@@ -25,7 +25,7 @@ const AuthRoute = React.memo(({ component: Component, denied, loading, oidc, ...
     <Route
       {...rest}
       render={props => {
-        if (oidc.isLoadingUser) {
+        if (oidc.isLoadingUser || oidc.isSigningOut) {
           return loading || <i className='fas fa-spinner fa-spin'></i>;
         } else if (!oidc.user) {
           return denied || <ForceLogin redirect={props.match.url} />;
@@ -48,4 +48,5 @@ function mapStateToProps(state) {
     oidc: state.oidc
   };
 }
+
 export default connect(mapStateToProps)(AuthRoute);
