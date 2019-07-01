@@ -41,7 +41,7 @@ const processMemberPart = (state, key, action) => {
   var mru = [ ...((state.details || {}).mru || []) ];
   mru.push(action.user);
   var details = (state.details || {})[action.user];
-  details = { ...details, [key]: action.payload.data }
+  details = { ...details, [key]: action.payload }
 
   const detailsList = { ...state.details, mru };
   detailsList[action.user] = details;

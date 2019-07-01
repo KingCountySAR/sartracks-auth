@@ -25,9 +25,9 @@ class ChildRow extends Component {
     return <div className='d-flex flex-row'>
       <div style={{paddingLeft: '1rem', paddingRight: '1rem'}}>
         <h6 style={{marginLeft: '-1rem'}}>External Logins</h6>
-        {logins
-          ? logins.length
-            ? logins.map(login => <div key={login.id}><i style={{color: login.meta.color}} className={`fab ${login.meta.icon}`} /> {login.attributes.displayName}</div>)
+        {logins && logins.data
+          ? logins.data.length
+            ? logins.data.map(login => <div key={login.id}><i style={{color: login.meta.color}} className={`fab ${login.meta.icon}`} /> {login.attributes.displayName}</div>)
             : <div><i>No external logins</i></div>
           : <div><i className="fas fa-spin fa-spinner"></i></div>}
       </div>
@@ -37,11 +37,11 @@ class ChildRow extends Component {
           ? (member.meta||{}).notAMember
             ? <div><i>No member found</i></div>
             : <div className='d-flex flex-row'>
-                <img className='badge-photo' alt='Member headshot' src={`${window.reactConfig.apis.data.url}/members/${member.id}/photo?access_token=${token}`} />
+                <img className='badge-photo' alt='Member headshot' src={`${window.reactConfig.apis.data.url}/members/${member.data.id}/photo?access_token=${token}`} />
                 <div>
-                  <div className={'wacbar wac_' + member.attributes.wacLevel}>{member.attributes.wacLevel}</div>
-                  <div>{member.attributes.name}</div>
-                  <div>ID#: {member.attributes.workerNumber}</div>
+                  <div className={'wacbar wac_' + member.data.attributes.wacLevel}>{member.data.attributes.wacLevel}</div>
+                  <div>{member.data.attributes.name}</div>
+                  <div>ID#: {member.data.attributes.workerNumber}</div>
                 </div>
               </div>
           : <div><i className='fas fa-spin fa-spinner'></i></div>}
@@ -52,7 +52,7 @@ class ChildRow extends Component {
           ? (member.meta||{}).notAMember
             ? null
             : <div>
-                {member.attributes.units.map(u => <div key={u.unit.id}>{u.unit.name} - {u.status}</div>)}
+                {(member.data.attributes.units || []).map(u => <div key={u.unit.id}>{u.unit.name} - {u.status}</div>)}
               </div>
           : <div><i className='fas fa-spin fa-spinner'></i></div>}
       </div>

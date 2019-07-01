@@ -49,9 +49,6 @@ class NavMenu extends Component {
                 <NavItem>
                   <NavLink tag={Link} to="/">Home</NavLink>
                 </NavItem>
-                <NavItem>
-                  <NavLink tag={Link} to="/counter">Counter</NavLink>
-                </NavItem>
                 <NavItem className="flex-grow"></NavItem>
                 {oidc.user && oidc.user.profile ? <NavLink tag={Link} to="/manage">Hello {oidc.user.profile.name}</NavLink> : null}
                 <NavItem>
