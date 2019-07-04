@@ -234,7 +234,7 @@ namespace SarData.Auth.Controllers
     {
       await signin.SignOutAsync();
       logger.LogInformation("User logged out.");
-      return RedirectToAction(nameof(HomeController.Index), "Home");
+      return Redirect("/");
     }
 
     [HttpPost]
@@ -447,7 +447,7 @@ namespace SarData.Auth.Controllers
     {
       if (userId == null || code == null)
       {
-        return RedirectToAction(nameof(HomeController.Index), "Home");
+        return Redirect("/");
       }
       var user = await users.FindByIdAsync(userId);
       if (user == null)
@@ -580,7 +580,7 @@ namespace SarData.Auth.Controllers
       }
       else
       {
-        return RedirectToAction(nameof(HomeController.Index), "Home");
+        return Redirect("/");
       }
     }
 

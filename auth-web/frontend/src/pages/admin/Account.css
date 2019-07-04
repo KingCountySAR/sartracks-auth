@@ -1,0 +1,25 @@
+.card {
+  margin-bottom: 1em;
+}
+
+.sub-group {
+  padding-left: 1rem;
+  position: relative;
+}
+
+.sub-group:before {
+  content: '';
+  border-left: 2px solid #aaa;
+  position: absolute;
+  height: 100%;
+  left: .25rem;
+  top: 0;
+}
+
+.form-inline > * {
+  margin-left: .5rem;
+}
+
+.form-inline > *:first {
+  margin-left: 0;
+}

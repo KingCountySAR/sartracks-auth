@@ -1,10 +1,39 @@
 import { reducerFactory as tableReducerFactory, actionsFactory as tableActionsFactory, SELECT_MODE_SINGLE } from './data-table';
 
 export const actions = {
+  ...tableActionsFactory('/api/accounts', 'accounts_list', s => s.accounts.list),
+
+  loadAccountFull: userId => (dispatch, getState) => {
+    return actions.loadAccount(userId)(dispatch, getState)
+    .then(account => {
+      return Promise.all([
+        actions.loadAccountDetails(account.data.id, account.data.attributes.memberId)(dispatch, getState),
+        actions.loadAccountGroups(account.data.id)(dispatch, getState)
+      ]);
+    })
+  },
+
+  loadAccount: userId => (dispatch, getState) => {
+    dispatch({type: 'accounts/LOAD', payload: { id: userId }});
+    const task = fetch(`/api/accounts/${userId}`)
+    .then(msg => msg.json())
+    .then(json => {
+      dispatch({type: 'accounts/LOADED', user: userId, payload: json});
+      return json;
+    });
+
+    task.catch(err => {
+      console.error(err);
+      dispatch({type: 'accounts/LOAD_FAIL', user: userId, failure: err, data: {}, meta: {}})
+    })
+
+    return task;
+  },
+
   loadAccountDetails: (userId, memberId) => (dispatch, getState) => {
     dispatch({type: 'accounts/LOAD_DETAIL', payload: { id: userId } });
     var tasks = [
-      fetch(`/api/admin/accounts/${userId}/externallogins`)
+      fetch(`/api/accounts/${userId}/externallogins`)
       .then(msg => msg.json())
       .then(json => dispatch({type: 'accounts/LOGINS_LOADED', user: userId, payload: json}))
       .catch(err => {
@@ -30,34 +59,52 @@ export const actions = {
     } else {
       dispatch({type: 'accounts/MEMBER_LOADED', user: userId, payload: { meta: { notAMember: true }} });
     }
-    Promise.all(tasks).then(() => dispatch({type: 'accounts/LOADED_DETAIL', user: userId }))
+    return Promise.all(tasks).then(() => dispatch({type: 'accounts/LOADED_DETAIL', user: userId }))
   },
-  ...tableActionsFactory('/api/admin/accounts', 'accounts_list', s => s.accounts.list)
+
+  loadAccountGroups: userId => (dispatch, getState) => {
+    dispatch({type: 'accounts/LOAD_GROUPS', payload: { id: userId }});
+    const task = fetch(`/api/accounts/${userId}/groups`)
+    .then(msg => msg.json())
+    .then(json => {
+      dispatch({type: 'accounts/GROUPS_LOADED', user: userId, payload: json});
+      return json;
+    });
+
+    task.catch(err => {
+      console.error(err);
+      dispatch({type: 'accounts/LOAD_GROUPS_FAIL', user: userId, failure: err, data: {}, meta: {}})
+    })
+
+    return task;
+  },
 };
 
+
+
+// ======================  REDUCER  ===================
 const tableReducer = tableReducerFactory('accounts_list');
-
-const processMemberPart = (state, key, action) => {
-  var mru = [ ...((state.details || {}).mru || []) ];
-  mru.push(action.user);
-  var details = (state.details || {})[action.user];
-  details = { ...details, [key]: action.payload }
-
-  const detailsList = { ...state.details, mru };
-  detailsList[action.user] = details;
-  if (mru.length > 10) delete detailsList[mru.shift()];
-
-  return {...state, details: detailsList};
-}
-
-export function reducer(state = { list: { opts: { size: 25, page: 1, selectMode: SELECT_MODE_SINGLE }, data: [] }}, action) {
+export function reducer(state = { list: { opts: { size: 25, page: 1, selectMode: SELECT_MODE_SINGLE }, data: [] }, details: { data: {} }}, action) {
   switch (action.type) {
+    case 'accounts/LOAD_DETAIL':
+      return action.payload.id === state.details.id ? state : { ...state, details: { id: action.payload.id }}
+
+
+    case 'accounts/LOAD':
+      return { ...state, details: { ...state.details, isLoading: true }};
+
+    case 'accounts/LOADED':
+      return { ...state, details: {...action.payload, id: action.user} };
+
     case 'accounts/LOGINS_LOADED':
-      return processMemberPart(state, 'logins', action);
+      return action.user !== state.details.id ? state : { ...state, details: { ...state.details, logins: action.payload }};
 
     case 'accounts/MEMBER_LOADED':
-      return processMemberPart(state, 'member', action);
+      return action.user !== state.details.id ? state : { ...state, details: { ...state.details, member: action.payload }};
 
+    case 'accounts/GROUPS_LOADED':
+        return action.user !== state.details.id ? state : { ...state, details: { ...state.details, groups: action.payload }};
+    
     default:
       return {...state, list: tableReducer(state.list, action)};
   }

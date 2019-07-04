@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
-using System.Linq;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -22,18 +22,19 @@ namespace SarData.Auth.Controllers
       this.db = db;
     }
 
-    public async Task<IActionResult> Index()
-    {
-      if (User.Identity.IsAuthenticated)
-      {
-        string userId = User.FindFirst("sub").Value;
-        var userOrgs = await db.Users.Where(f => f.Id == userId).SelectMany(f => f.CustomOrganizations).Select(f => f.OrganizationId).ToListAsync();
-        var apps = await db.Applications.Where(f => f.Organizations.Count == 0 || f.Organizations.Any(g => userOrgs.Contains(g.OrganizationId))).ToListAsync();
-        ViewData["apps"] = apps;
-        return View();
-      }
-      return View();
-    }
+    //[HttpGet("/")]
+    //public async Task<IActionResult> Index()
+    //{
+    //  if (User.Identity.IsAuthenticated)
+    //  {
+    //    string userId = User.FindFirst("sub").Value;
+    //    var userOrgs = await db.Users.Where(f => f.Id == userId).SelectMany(f => f.CustomOrganizations).Select(f => f.OrganizationId).ToListAsync();
+    //    var apps = await db.Applications.Where(f => f.Organizations.Count == 0 || f.Organizations.Any(g => userOrgs.Contains(g.OrganizationId))).ToListAsync();
+    //    ViewData["apps"] = apps;
+    //    return View();
+    //  }
+    //  return View();
+    //}
 
     public IActionResult Error()
     {
@@ -41,8 +42,31 @@ namespace SarData.Auth.Controllers
     }
 
     [HttpGet("/react-config")]
-    public IActionResult ReactConfig([FromServices] IConfiguration config)
+    public async Task<IActionResult> ReactConfig([FromServices] IConfiguration config)
     {
+      object me = null;
+      object oidc = null;
+      if (User.Identity.IsAuthenticated)
+      {
+        string userId = User.FindFirstValue("sub");
+        me = new
+        {
+          UserId = userId,
+          Apps = await ApiController.GetUserApplications(db, userId, new Dictionary<string, int>(), new Dictionary<string, string>(), null, null)
+        };
+        oidc = new
+        {
+          User = new
+          {
+            Profile = new
+            {
+              Name = User.FindFirstValue("name"),
+              Sub = userId
+            }
+          }
+        };
+      }
+
       return Content("window.reactConfig = " + JsonConvert.SerializeObject(new
       {
         auth = new
@@ -56,7 +80,9 @@ namespace SarData.Auth.Controllers
           {
             url = (config["apis:database"] ?? "").TrimEnd('/')
           }
-        }
+        },
+        me,
+        oidc
       }, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() }));
     }
 

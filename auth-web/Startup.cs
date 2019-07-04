@@ -107,7 +107,12 @@ namespace SarData.Auth
           builder.AllowAnyOrigin().AllowAnyHeader().AllowCredentials();
         });
       });
-      services.AddMvc();
+
+      services.AddMvc()
+        .AddJsonOptions(options =>
+        {
+          options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+        });
 
       AddIdentityServer(services, configureDbAction);
       services.AddTransient<IProfileService, MemberProfileService>();

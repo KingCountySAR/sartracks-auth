@@ -25,10 +25,10 @@ const AuthRoute = React.memo(({ component: Component, denied, loading, oidc, ...
     <Route
       {...rest}
       render={props => {
-        if (oidc.isLoadingUser || oidc.isSigningOut) {
+        if ((oidc.isLoadingUser && !oidc.preload) || oidc.isSigningOut) {
           return loading || <i className='fas fa-spinner fa-spin'></i>;
         } else if (!oidc.user) {
-          return denied || <ForceLogin redirect={props.match.url} />;
+          return denied || (denied === '' ? denied : <ForceLogin redirect={props.match.url} />);
         } else {
           return <Component {...rest} />;
         }

@@ -16,25 +16,68 @@ using SarData.Auth.Data;
 using SarData.Auth.Models;
 using SarData.Auth.Models.AdminViewModels;
 
-namespace auth_web.Controllers
+namespace SarData.Auth.Controllers
 {
   [Authorize]
-  public class AdminApiController : Controller
+  public class ApiController : Controller
   {
     private readonly ApplicationDbContext appDb;
-    private readonly ILogger<AdminApiController> logger;
+    private readonly ILogger<ApiController> logger;
     private readonly IConfiguration configuration;
 
-    public AdminApiController(ApplicationDbContext appDb, ILogger<AdminApiController> logger, IConfiguration configuration)
+    public ApiController(ApplicationDbContext appDb, ILogger<ApiController> logger, IConfiguration configuration)
     {
       this.appDb = appDb;
       this.logger = logger;
       this.configuration = configuration;
     }
 
-    [HttpGet("/api/admin/account/{userId}")]
+    public static async Task<object> GetUserApplications(ApplicationDbContext appDb, string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort, IQueryCollection query)
+    {
+      ListQueryStrategy strategy = new ListModifiersBuilder("Name").Build(page, filter, sort, query);
+      var appsQuery = appDb.Applications.Where(f => f.Organizations.Count == 0 || f.Organizations.Any(g => appDb.Users.Where(h => h.Id == userId).SelectMany(h => h.CustomOrganizations).Select(h => h.OrganizationId).Contains(g.OrganizationId)))
+        .Select(a => new
+        {
+          _Type = "applications",
+          Id = a.Id,
+          Name = a.Name,
+          Url = a.Url,
+          Description = a.Description,
+          Logo = a.Logo
+        });
+
+      return await strategy.Run(
+        appsQuery,
+        q => f => f.Name.Contains(q),
+        f => new
+        {
+          Type = f._Type,
+          Id = f.Id,
+          //Meta = new
+          //{
+          //  Created = f.Created
+          //},
+          Attributes = new
+          {
+            Name = f.Name,
+            Description = f.Description,
+            Url = f.Url,
+            Logo = f.Logo
+          }
+        },
+        null);
+    }
+
+    [HttpGet("/api/accounts/{userId}/applications")]
     [JsonApi]
-    public async Task<ActionResult> GetUser(string userId)
+    public async Task<ActionResult> GetUserApplicationsApi(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
+    {
+      return Json(await GetUserApplications(appDb, userId, page, filter, sort, Request.Query));      
+    }
+
+    [HttpGet("/api/accounts/{userId}")]
+    [JsonApi]
+    public async Task<ActionResult> GetUser(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
       var f = await (from u in appDb.Users
                      where u.Id == userId
@@ -79,7 +122,7 @@ namespace auth_web.Controllers
       });
     }
 
-    [HttpGet("/api/admin/accounts")]
+    [HttpGet("/api/accounts")]
     [JsonApi]
     public async Task<ActionResult> ListUsers(Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
@@ -127,7 +170,7 @@ namespace auth_web.Controllers
         ));
     }
     
-    [HttpGet("/api/admin/Accounts/{userId}/ExternalLogins")]
+    [HttpGet("/api/Accounts/{userId}/ExternalLogins")]
     [JsonApi]
     public async Task<ActionResult> ListUserLogins(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
@@ -169,6 +212,80 @@ namespace auth_web.Controllers
         ));
     }
 
+    [HttpGet("/api/Accounts/{userId}/Groups")]
+    [JsonApi]
+    public async Task<ActionResult> ListUserGroups(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
+    {
+      ListQueryStrategy strategy = new ListModifiersBuilder("DisplayName").Build(page, filter, sort, Request.Query);
+
+      //var query = appDb.UserRoles.Select(f => new { User = f.User, Role = f.Role }).SelectMany(f => f.Role.Ancestors.Select(g => new { UserId = f.User.Id, IsIn = g.ParentId, BecauseOf = g.ChildId, Nested = 1 }));
+      var query = (from m in appDb.UserRoles
+                   join link in appDb.Roles.SelectMany(f => f.Ancestors) on m.RoleId equals link.ChildId
+                   select new
+                   {
+                     UserId = m.UserId,
+                     IsIn = link.ParentId,
+                     DisplayName = link.Parent.Name,
+                     BecauseOf = m.RoleId,
+                     BecauseName = m.Role.Name,
+                     Nested = 1
+                   }).Union(from m in appDb.UserRoles
+                            select new
+                            {
+                              UserId = m.UserId,
+                              IsIn = m.RoleId,
+                              DisplayName = m.Role.Name,
+                              BecauseOf = m.RoleId,
+                              BecauseName = m.Role.Name,
+                              Nested = 0
+                            })
+                            .Where(f => f.UserId == userId)
+                            .OrderBy(f => f.BecauseName).ThenBy(f => f.Nested).ThenBy(f => f.DisplayName);
+
+
+      var list = await query.ToListAsync();
+
+      return Json(await strategy.Run(
+        query,
+        q => f => f.DisplayName.Contains(q),
+        f => new
+        {
+          Type = "groups",
+          Id = f.IsIn,
+          Attributes = new
+          {
+            DisplayName = f.DisplayName
+          },
+          Relationships = new GroupRelationshipsModel
+          {
+            Parent = new GroupParentModel
+            {
+              Data = new JsonApiResourceId { Type = "groups", Id = f.BecauseOf }
+            }
+          }
+        },
+        row =>
+        {
+          row.Relationships.Parent = row.Relationships.Parent.Data.Id == row.Id ? null : row.Relationships.Parent;
+        }));
+    }
+
+    class GroupRelationshipsModel
+    {
+      public GroupParentModel Parent { get; set; }
+    }
+
+    class GroupParentModel
+    {
+      public JsonApiResourceId Data { get; set; }
+    }
+
+    class JsonApiResourceId
+    {
+      public string Type { get; set; }
+      public string Id { get; set; }
+    }
+
 
     class ExternalLoginMeta
     {
@@ -189,7 +306,7 @@ namespace auth_web.Controllers
 
       public ListQueryStrategy Build(Dictionary<string, int> page, Dictionary<string, string> filter, string sort, IQueryCollection query)
       {
-        if (!filter.ContainsKey(string.Empty) && query.TryGetValue("filter", out StringValues standaloneFilter) && standaloneFilter.Count == 1 && !string.IsNullOrWhiteSpace(standaloneFilter[0]))
+        if (!filter.ContainsKey(string.Empty) && query != null && query.TryGetValue("filter", out StringValues standaloneFilter) && standaloneFilter.Count == 1 && !string.IsNullOrWhiteSpace(standaloneFilter[0]))
         {
           filter.Add(string.Empty, standaloneFilter[0]);
         }

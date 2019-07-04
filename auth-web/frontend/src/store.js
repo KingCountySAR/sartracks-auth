@@ -4,6 +4,7 @@ import { createLogger } from 'redux-logger'
 
 import { reducer as oidc } from './redux/oidc'
 import { reducer as accounts } from './redux/accounts'
+import { reducer as me } from './redux/me'
 
 const defaultState = {
   oidc: { signedIn: false, user: null }
@@ -20,7 +21,8 @@ if(process.env.NODE_ENV === 'development' || (localStorage && localStorage.showL
 
 const rootReducer = combineReducers({
   oidc,
-  accounts
+  accounts,
+  me
 })
 
 const store = createStore(

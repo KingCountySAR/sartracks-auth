@@ -50,9 +50,9 @@ class NavMenu extends Component {
                   <NavLink tag={Link} to="/">Home</NavLink>
                 </NavItem>
                 <NavItem className="flex-grow"></NavItem>
-                {oidc.user && oidc.user.profile ? <NavLink tag={Link} to="/manage">Hello {oidc.user.profile.name}</NavLink> : null}
+                {oidc.user && oidc.user.profile ? <NavLink tag={'a'} href="/manage/index">Hello {oidc.user.profile.name}</NavLink> : null}
                 <NavItem>
-                  {oidc.isLoadingUser
+                  {oidc.isLoadingUser && !oidc.preload
                   ? <span className='navbar-text'>Loading <i className='fas fa-spin fa-spinner'></i></span>
                   : oidc.user 
                   ? <NavLink tag={Button} className="btn btn-link" onClick={this.onLogoutButtonClick}>Log out</NavLink>

@@ -23,6 +23,19 @@ button.page-link {
   border-radius: 0;
 }
 
+button.btn-link.expando {
+  padding:0;
+}
+
+.card {
+  padding: .4rem 1rem 1rem 1.2rem;
+  margin-right: 1rem;
+}
+
+.card > h6 {
+  margin-left: -.8rem;
+}
+
 /*  ------- database styles -------- */
 .badge-photo {
   width: 4.5em;

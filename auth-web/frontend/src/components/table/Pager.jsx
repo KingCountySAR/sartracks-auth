@@ -19,7 +19,7 @@ export default class Pager extends Component {
       const totalPages = Math.ceil(total / size)
       const firstNum = Math.max(1, Math.min(Math.max(page - 2, 1), totalPages - 4));
       const nums = Array.from(new Array(Math.min(totalPages, 5)), (x,i) => i + firstNum)
-      label = <span>Showing {((page - 1) * size + 1).toLocaleString()} to {Math.min(page * size, total).toLocaleString()} of {total.toLocaleString()} entries</span>
+      label = <span>Showing {((page - 1) * size + 1).toLocaleString()} to {Math.min(page * size, total).toLocaleString()} of {total.toLocaleString()} {total === 1 ? 'entry' : 'entries'}</span>
       inner = nums.map(n => <PaginationItem key={n} className={n === page ? 'active' : ''}><PageLink onClick={() => onPage(n)}>{n}</PageLink></PaginationItem>)
       leftEnabled = page > 1
       rightEnabled = page < totalPages
