@@ -1,3 +1,8 @@
+html { height: 100% }
+body { height: 100%; display:flex}
+#root, #root > div { flex: 1 1 auto; display: flex; flex-direction: column;}
+#root > div > div.container { flex: 1 1 auto; display: flex; flex-direction: column; }
+
 table.table > tbody > tr > td.dt-actions {
   white-space: nowrap;
   width: 50px;

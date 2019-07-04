@@ -9,7 +9,7 @@ import { loadUser, OidcProvider } from 'redux-oidc';
 
 import store from './store'
 import userManager from './user-manager'
-import registerServiceWorker from './registerServiceWorker';
+import { unregister as unregisterServiceWorker } from './registerServiceWorker';
 import { ActionsFactory as oidcActionsFactory } from './redux/oidc';
 
 import App from './App';
@@ -54,4 +54,4 @@ ReactDOM.render(
   </Provider>,
   rootElement);
 
-registerServiceWorker();
+unregisterServiceWorker();
