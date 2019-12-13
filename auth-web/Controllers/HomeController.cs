@@ -52,7 +52,7 @@ namespace SarData.Auth.Controllers
         me = new
         {
           UserId = userId,
-          Apps = await ApiController.GetUserApplications(db, userId, new Dictionary<string, int>(), new Dictionary<string, string>(), null, null)
+          Apps = await AccountsApiController.GetUserApplications(db, userId, new Dictionary<string, int>(), new Dictionary<string, string>(), null, null)
         };
         oidc = new
         {

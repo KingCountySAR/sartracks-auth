@@ -141,6 +141,7 @@ namespace SarData.Auth
         })
         {
           var database = dbContext.Database;
+          startupLogger.LogInformation($"Starting database {dbContext.GetType().Name} @ {database.GetDbConnection().DataSource}");
           if (useMigrations)
           {
             // Common case - SQL Server, etc

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -9,23 +8,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using SarData;
 using SarData.Auth.Data;
 using SarData.Auth.Models;
 using SarData.Auth.Models.AdminViewModels;
+using SarData.JsonApi;
+using SarData.Server.JsonApi;
 
 namespace SarData.Auth.Controllers
 {
   [Authorize]
-  public class ApiController : Controller
+  public class AccountsApiController : Controller
   {
     private readonly ApplicationDbContext appDb;
-    private readonly ILogger<ApiController> logger;
+    private readonly ILogger<AccountsApiController> logger;
     private readonly IConfiguration configuration;
 
-    public ApiController(ApplicationDbContext appDb, ILogger<ApiController> logger, IConfiguration configuration)
+    public AccountsApiController(ApplicationDbContext appDb, ILogger<AccountsApiController> logger, IConfiguration configuration)
     {
       this.appDb = appDb;
       this.logger = logger;
@@ -34,7 +34,7 @@ namespace SarData.Auth.Controllers
 
     public static async Task<object> GetUserApplications(ApplicationDbContext appDb, string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort, IQueryCollection query)
     {
-      ListQueryStrategy strategy = new ListModifiersBuilder("Name").Build(page, filter, sort, query);
+      ListQueryStrategy strategy = new ListQueryBuilder("Name").Build(page, filter, sort, query);
       var appsQuery = appDb.Applications.Where(f => f.Organizations.Count == 0 || f.Organizations.Any(g => appDb.Users.Where(h => h.Id == userId).SelectMany(h => h.CustomOrganizations).Select(h => h.OrganizationId).Contains(g.OrganizationId)))
         .Select(a => new
         {
@@ -72,7 +72,7 @@ namespace SarData.Auth.Controllers
     [JsonApi]
     public async Task<ActionResult> GetUserApplicationsApi(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
-      return Json(await GetUserApplications(appDb, userId, page, filter, sort, Request.Query));      
+      return Json(await GetUserApplications(appDb, userId, page, filter, sort, Request.Query));
     }
 
     [HttpGet("/api/accounts/{userId}")]
@@ -126,8 +126,8 @@ namespace SarData.Auth.Controllers
     [JsonApi]
     public async Task<ActionResult> ListUsers(Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
-      ListQueryStrategy mods = new ListModifiersBuilder("LastName").Build(page, filter, sort, Request.Query);
-            
+      ListQueryStrategy mods = new ListQueryBuilder("LastName").Build(page, filter, sort, Request.Query);
+
       return Json(await mods.Run(
         from u in appDb.Users
         select new
@@ -169,13 +169,13 @@ namespace SarData.Auth.Controllers
         account => account.Attributes.UserName = account.Attributes.UserName.StartsWith('@') ? "@" : account.Attributes.UserName
         ));
     }
-    
+
     [HttpGet("/api/Accounts/{userId}/ExternalLogins")]
     [JsonApi]
     public async Task<ActionResult> ListUserLogins(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
       var oidcConfigs = JsonConvert.DeserializeObject<OidcConfig[]>(string.IsNullOrWhiteSpace(configuration["auth:external:oidc"]) ? "[]" : configuration["auth:external:oidc"]).ToDictionary(f => f.Id, f => f);
-      ListQueryStrategy mods = new ListModifiersBuilder("ProviderDisplayName").Build(page, filter, sort, Request.Query);
+      ListQueryStrategy mods = new ListQueryBuilder("ProviderDisplayName").Build(page, filter, sort, Request.Query);
 
       return Json(await mods.Run(
         from l in appDb.UserLogins
@@ -216,7 +216,7 @@ namespace SarData.Auth.Controllers
     [JsonApi]
     public async Task<ActionResult> ListUserGroups(string userId, Dictionary<string, int> page, Dictionary<string, string> filter, string sort)
     {
-      ListQueryStrategy strategy = new ListModifiersBuilder("DisplayName").Build(page, filter, sort, Request.Query);
+      ListQueryStrategy strategy = new ListQueryBuilder("DisplayName").Build(page, filter, sort, Request.Query);
 
       //var query = appDb.UserRoles.Select(f => new { User = f.User, Role = f.Role }).SelectMany(f => f.Role.Ancestors.Select(g => new { UserId = f.User.Id, IsIn = g.ParentId, BecauseOf = g.ChildId, Nested = 1 }));
       var query = (from m in appDb.UserRoles
@@ -260,7 +260,7 @@ namespace SarData.Auth.Controllers
           {
             Parent = new GroupParentModel
             {
-              Data = new JsonApiResourceId { Type = "groups", Id = f.BecauseOf }
+              Data = new JsonApiResourceId("groups", f.BecauseOf)
             }
           }
         },
@@ -280,123 +280,10 @@ namespace SarData.Auth.Controllers
       public JsonApiResourceId Data { get; set; }
     }
 
-    class JsonApiResourceId
-    {
-      public string Type { get; set; }
-      public string Id { get; set; }
-    }
-
-
     class ExternalLoginMeta
     {
       public string Icon { get; set; }
       public string Color { get; set; }
-    }
-
-    class ListModifiersBuilder
-    {
-      public int DefaultPageSize { get; set; } = 10;
-
-      public string DefaultSort { get; private set; }
-
-      public ListModifiersBuilder(string defaultSort)
-      {
-        DefaultSort = defaultSort;
-      }
-
-      public ListQueryStrategy Build(Dictionary<string, int> page, Dictionary<string, string> filter, string sort, IQueryCollection query)
-      {
-        if (!filter.ContainsKey(string.Empty) && query != null && query.TryGetValue("filter", out StringValues standaloneFilter) && standaloneFilter.Count == 1 && !string.IsNullOrWhiteSpace(standaloneFilter[0]))
-        {
-          filter.Add(string.Empty, standaloneFilter[0]);
-        }
-
-        page = page ?? new Dictionary<string, int>();
-
-        page.TryAdd("size", 0);
-        page.TryAdd("number", 1);
-
-        if (page["number"] < 1) page["number"] = 1;
-        if (page["size"] < 0) page["size"] = 10;
-
-        return new ListQueryStrategy(page, filter, sort, DefaultSort);
-      }
-    }
-
-    class ListQueryStrategy
-    {
-      private readonly Dictionary<string, int> page;
-      private readonly Dictionary<string, string> filter;
-      private readonly string sort;
-      private readonly string defaultSort;
-
-      public ListQueryStrategy(Dictionary<string, int> page, Dictionary<string, string> filter, string sort, string defaultSort)
-      {
-        this.page = page;
-        this.filter = filter;
-        this.sort = sort;
-        this.defaultSort = defaultSort;
-      }
-
-      public async Task<object> Run<Q,P>(
-        IQueryable<Q> unfilteredQuery,
-        Func<string, Expression<Func<Q, bool>>> searchBuilder,
-        Expression<Func<Q, P>> projection,
-        Action<P> localProcessor
-        )
-      {
-        var query = ApplyFilters(unfilteredQuery, searchBuilder);
-
-        var accountList = await ApplyPaging(ApplySort(query)).Select(projection).ToListAsync();
-
-        var totalCount = await unfilteredQuery.CountAsync();
-        int filteredCount = totalCount;
-        if (query != unfilteredQuery)
-        {
-          filteredCount = await query.CountAsync();
-        }
-
-        if (localProcessor != null)
-        {
-          foreach (var row in accountList)
-          {
-            localProcessor(row);
-          }
-        }
-
-        return new
-        {
-          Meta = new { TotalRows = totalCount, FilteredRows = filteredCount },
-          Data = accountList
-        };
-      }
-
-      private IQueryable<T> ApplyFilters<T>(IQueryable<T> original, Func<string, Expression<Func<T,bool>>> searchBuilder)
-      {
-        if (filter.TryGetValue("", out string globalFilter) && !string.IsNullOrWhiteSpace(globalFilter))
-        {
-          return original.Where(searchBuilder(globalFilter));
-        }
-        return original;
-      }
-
-      private IOrderedQueryable<T> ApplySort<T>(IQueryable<T> original)
-      {
-        return original.ApplySort(sort, defaultSort);
-      }
-
-      private IQueryable<T> ApplyPaging<T>(IQueryable<T> query)
-      {
-        if (page["size"] > 0)
-        {
-          if (page["number"] > 1)
-          {
-            query = query.Skip((page["number"] - 1) * page["size"]);
-          }
-          query = query.Take(page["size"]);
-        }
-        return query;
-      }
     }
   }
 }
