@@ -17,15 +17,9 @@ namespace SarData.Auth
 
     public static IWebHost BuildWebHost(string[] args)
     {
-      var builder = WebHost.CreateDefaultBuilder(args);
-      var insightsKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
-      if (!string.IsNullOrWhiteSpace(insightsKey))
-      {
-        builder = builder.UseApplicationInsights(insightsKey);
-      }
-
       string contentRoot = "";
 
+      var builder = WebHost.CreateDefaultBuilder(args);
       return builder
         .UseStartup<Startup>()
         .ConfigureAppConfiguration((context, config) =>

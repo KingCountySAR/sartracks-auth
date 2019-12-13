@@ -12,9 +12,9 @@ namespace SarData.Auth.Services
   // For more details see https://go.microsoft.com/fwlink/?LinkID=532713
   public class TestMessagingService : IMessagingApi
   {
-    private readonly IHostingEnvironment env;
+    private readonly IWebHostEnvironment env;
 
-    public TestMessagingService(IHostingEnvironment env)
+    public TestMessagingService(IWebHostEnvironment env)
     {
       this.env = env;
     }

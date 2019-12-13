@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -8,6 +9,7 @@ using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +17,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -30,7 +33,7 @@ namespace SarData.Auth
   public class Startup
   {
 
-    public Startup(IConfiguration configuration, IHostingEnvironment env, ILogger<Startup> logger)
+    public Startup(IConfiguration configuration, IWebHostEnvironment env, ILogger<Startup> logger)
     {
       Configuration = configuration;
       this.env = env;
@@ -40,7 +43,7 @@ namespace SarData.Auth
     public IConfiguration Configuration { get; }
 
     private readonly ILogger startupLogger;
-    private readonly IHostingEnvironment env;
+    private readonly IWebHostEnvironment env;
     private Uri siteRoot;
     private bool useMigrations = true;
 
@@ -55,11 +58,20 @@ namespace SarData.Auth
       Action<DbContextOptionsBuilder> configureDbAction = AddDatabases(services);
 
       services.AddSingleton(Configuration);
+      services.AddApplicationInsightsTelemetry();
+
       services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
       services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(Configuration["store:connectionstring"]));
 
       services.AddTransient<IPasswordHasher<ApplicationUser>, LegacyPasswordHasher>();
       services.AddTransient<OidcSeeder>();
+
+      services.Configure<CookiePolicyOptions>(options =>
+      {
+        options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
+        options.OnAppendCookie = cookieContext => CheckSameSite(cookieContext.Context, cookieContext.CookieOptions);
+        options.OnDeleteCookie = cookieContext => CheckSameSite(cookieContext.Context, cookieContext.CookieOptions);
+      });
 
       services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
       {
@@ -104,14 +116,18 @@ namespace SarData.Auth
       {
         options.AddDefaultPolicy(builder =>
         {
-          builder.AllowAnyOrigin().AllowAnyHeader().AllowCredentials();
+          var list = Configuration.GetSection("corsOrigins")?.Get<List<string>>() ?? new List<string>();
+          var siteRoot = Configuration["siteRoot"];
+          if (!list.Contains(siteRoot)) list.Add(siteRoot);
+
+          builder.AllowAnyHeader().AllowCredentials().WithOrigins(list.ToArray());
         });
       });
 
       services.AddMvc()
         .AddJsonOptions(options =>
         {
-          options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+          options.JsonSerializerOptions.IgnoreNullValues = true;
         });
 
       AddIdentityServer(services, configureDbAction);
@@ -124,10 +140,12 @@ namespace SarData.Auth
       {
         configuration.RootPath = "frontend/build";
       });
+
+
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
       using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
       {
@@ -142,6 +160,7 @@ namespace SarData.Auth
         {
           var database = dbContext.Database;
           startupLogger.LogInformation($"Starting database {dbContext.GetType().Name} @ {database.GetDbConnection().DataSource}");
+          //throw new InvalidOperationException("Trying to connect to " + dbContext.Database.GetDbConnection().DataSource);
           if (useMigrations)
           {
             // Common case - SQL Server, etc
@@ -189,18 +208,18 @@ namespace SarData.Auth
           return next();
         });
 
+        innerApp.UseCookiePolicy();
         innerApp.UseStaticFiles();
         innerApp.UseSpaStaticFiles();
 
+        innerApp.UseRouting();
         innerApp.UseCors();
-
         innerApp.UseIdentityServer();
+        innerApp.UseAuthorization();
 
-        innerApp.UseMvc(routes =>
+        innerApp.UseEndpoints(endpoints =>
         {
-          routes.MapRoute(
-                    name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+          endpoints.MapControllers();
         });
 
         innerApp.UseSpa(spa =>
@@ -223,6 +242,56 @@ namespace SarData.Auth
       {
         app.Map(path, configure);
       }
+    }
+
+    private void CheckSameSite(HttpContext httpContext, CookieOptions options)
+    {
+      if (options.SameSite == SameSiteMode.None)
+      {
+        var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
+        if (DisallowsSameSiteNone(userAgent))
+        {
+          options.SameSite = SameSiteMode.Unspecified;
+        }
+      }
+    }
+
+    private bool DisallowsSameSiteNone(string userAgent)
+    {
+      // Cover all iOS based browsers here. This includes:
+      // - Safari on iOS 12 for iPhone, iPod Touch, iPad
+      // - WkWebview on iOS 12 for iPhone, iPod Touch, iPad
+      // - Chrome on iOS 12 for iPhone, iPod Touch, iPad
+      // All of which are broken by SameSite=None, because they use the iOS networking
+      // stack.
+      if (userAgent.Contains("CPU iPhone OS 12") ||
+          userAgent.Contains("iPad; CPU OS 12"))
+      {
+        return true;
+      }
+
+      // Cover Mac OS X based browsers that use the Mac OS networking stack. 
+      // This includes:
+      // - Safari on Mac OS X.
+      // This does not include:
+      // - Chrome on Mac OS X
+      // Because they do not use the Mac OS networking stack.
+      if (userAgent.Contains("Macintosh; Intel Mac OS X 10_14") &&
+          userAgent.Contains("Version/") && userAgent.Contains("Safari"))
+      {
+        return true;
+      }
+
+      // Cover Chrome 50-69, because some versions are broken by SameSite=None, 
+      // and none in this range require it.
+      // Note: this covers some pre-Chromium Edge versions, 
+      // but pre-Chromium Edge does not require SameSite=None.
+      if (userAgent.Contains("Chrome/5") || userAgent.Contains("Chrome/6"))
+      {
+        return true;
+      }
+
+      return false;
     }
 
     private void AddExternalLogins(AuthenticationBuilder authBuilder)

@@ -17,7 +17,7 @@ namespace SarData.Auth.Identity
     private readonly IFileInfo file;
     private readonly ILogger<OidcSeeder> log;
 
-    public OidcSeeder(ConfigurationDbContext db, IHostingEnvironment env, ILogger<OidcSeeder> log)
+    public OidcSeeder(ConfigurationDbContext db, IWebHostEnvironment env, ILogger<OidcSeeder> log)
     {
       this.db = db;
       file = env.ContentRootFileProvider.GetFileInfo("seed-oidc.json");
