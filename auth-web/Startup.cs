@@ -120,6 +120,7 @@ namespace SarData.Auth
           var siteRoot = Configuration["siteRoot"];
           if (!list.Contains(siteRoot)) list.Add(siteRoot);
 
+          startupLogger.LogInformation($"Allowed CORS Origins: {string.Join(",", list)}");
           builder.AllowAnyHeader().AllowCredentials().WithOrigins(list.ToArray());
         });
       });
@@ -355,6 +356,7 @@ namespace SarData.Auth
       {
         options.PublicOrigin = siteRoot.GetLeftPart(UriPartial.Authority);
         options.UserInteraction.ErrorUrl = "/LoginError";
+        options.EmitLegacyResourceAudienceClaim = true;
       })
         .AddDeveloperSigningCredential()
         .AddConfigurationStore(options =>
