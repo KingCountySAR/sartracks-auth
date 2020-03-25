@@ -1,0 +1,62 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+resources:
+  repositories:
+    - repository: common
+      type: github
+      endpoint: sar-tracks
+      name: KingCountySAR/sartracks-common
+    - repository: samlLibraries
+      type: git
+      name: sar-tracks
+      ref: saml-library
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- checkout: self
+  path: s/auth
+
+- checkout: common
+  path: s/common
+
+- checkout: samlLibraries
+
+- script: dir $(Build.SourcesDirectory)
+
+- script: move $(Build.SourcesDirectory)\sar-tracks\ComponentSpace* $(Build.SourcesDirectory)\auth\auth-web
+
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: build
+    projects: '**/auth-web.csproj'
+    arguments: '--configuration Release' # Update this to match your need
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: publish
+    publishWebProjects: True
+    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    zipAfterPublish: True
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: '$(deploy_subscription)'
+    appType: 'webApp'
+    WebAppName: '$(deploy_app)'
+    deployToSlotOrASE: true
+    ResourceGroupName: '$(deploy_rg)'
+    SlotName: '$(deploy_slot)'
+    packageForLinux: '$(build.artifactStagingDirectory)/auth-web.zip'

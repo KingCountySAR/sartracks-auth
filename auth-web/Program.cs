@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -27,9 +28,10 @@ namespace SarData.Auth
           contentRoot = context.HostingEnvironment.ContentRootPath;
           config.AddConfigFiles(context.HostingEnvironment.EnvironmentName);
         })
-        .ConfigureLogging(logBuilder =>
+        .ConfigureLogging((context, logBuilder) =>
         {
-          logBuilder.AddSarDataLogging(contentRoot);
+          var logFolder = Path.GetFullPath(Path.Combine(contentRoot, context.Configuration["log_folder"] ?? ""));
+          logBuilder.AddSarDataLogging(logFolder);
         })
         .Build();
     }

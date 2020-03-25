@@ -100,7 +100,6 @@ namespace SarData.Auth
       AddExternalLogins(authSetup);
 
       services.AddSingleton<ITokenClient, LocalTokenClient>();
-
       string messagingUrl = Configuration["apis:messaging"];
       if (string.IsNullOrWhiteSpace(messagingUrl))
       {
@@ -141,7 +140,6 @@ namespace SarData.Auth
       {
         configuration.RootPath = "frontend/build";
       });
-
 
     }
 
@@ -358,7 +356,6 @@ namespace SarData.Auth
         options.UserInteraction.ErrorUrl = "/LoginError";
         options.EmitLegacyResourceAudienceClaim = true;
       })
-        .AddDeveloperSigningCredential()
         .AddConfigurationStore(options =>
         {
           options.DefaultSchema = SqlDefaultSchema;
@@ -385,7 +382,7 @@ namespace SarData.Auth
       {
         var cert = new X509Certificate2(Convert.FromBase64String(Configuration["auth:signingKey"]), string.Empty, X509KeyStorageFlags.MachineKeySet);
         byte[] encodedPublicKey = cert.PublicKey.EncodedKeyValue.RawData;
-        File.WriteAllLines("signing-key-public.txt", new[] {
+        File.WriteAllLines(Path.Combine(Configuration["local_files"] ?? ".", "signing-key-public.txt"), new[] {
             "-----BEGIN PUBLIC KEY-----",
             Convert.ToBase64String(encodedPublicKey, Base64FormattingOptions.InsertLineBreaks),
             "-----END PUBLIC KEY-----",
