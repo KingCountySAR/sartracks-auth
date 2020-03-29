@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -16,24 +15,17 @@ namespace SarData.Auth
       BuildWebHost(args).Run();
     }
 
-    public static IWebHost BuildWebHost(string[] args)
-    {
-      string contentRoot = "";
-
-      var builder = WebHost.CreateDefaultBuilder(args);
-      return builder
+    public static IWebHost BuildWebHost(string[] args) =>    
+      WebHost.CreateDefaultBuilder(args)
         .UseStartup<Startup>()
         .ConfigureAppConfiguration((context, config) =>
         {
-          contentRoot = context.HostingEnvironment.ContentRootPath;
           config.AddConfigFiles(context.HostingEnvironment.EnvironmentName);
         })
         .ConfigureLogging((context, logBuilder) =>
         {
-          var logFolder = Path.GetFullPath(Path.Combine(contentRoot, context.Configuration["log_folder"] ?? ""));
-          logBuilder.AddSarDataLogging(logFolder);
+          logBuilder.AddSarDataLogging(context.Configuration["local_files"] ?? context.HostingEnvironment.ContentRootPath, "auth");
         })
         .Build();
-    }
   }
 }

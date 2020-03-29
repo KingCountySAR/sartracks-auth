@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Mime;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using IdentityModel;
 using IdentityServer4.EntityFramework.DbContexts;
 using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -17,22 +21,21 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using SarData.Auth.Data;
 using SarData.Auth.Identity;
 using SarData.Auth.Models;
 using SarData.Auth.Services;
 using SarData.Common.Apis;
+using SarData.Common.Apis.Health;
 using SarData.Common.Apis.Messaging;
 
 namespace SarData.Auth
 {
   public class Startup
   {
-
     public Startup(IConfiguration configuration, IWebHostEnvironment env, ILogger<Startup> logger)
     {
       Configuration = configuration;
@@ -53,15 +56,25 @@ namespace SarData.Auth
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
+      string databaseString = Configuration["store:connectionString"];
       siteRoot = new Uri(Configuration["siteRoot"]);
+
+      var healthChecksBuilder = services.AddHealthChecks()
+        .AddSqlServer(
+          connectionString: databaseString,
+          healthQuery: "SELECT 1;",
+          name: "sql",
+          failureStatus: HealthStatus.Unhealthy,
+          tags: new string[] { "db", "sql" }
+        );
 
       Action<DbContextOptionsBuilder> configureDbAction = AddDatabases(services);
 
       services.AddSingleton(Configuration);
       services.AddApplicationInsightsTelemetry();
 
-      services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(Configuration["store:connectionString"])));
-      services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(Configuration["store:connectionstring"]));
+      services.AddSingleton<IRemoteMembersService>(new ShimMemberService(new MembershipShimDbContext(databaseString)));
+      services.AddTransient(f => new Data.LegacyMigration.LegacyAuthDbContext(databaseString));
 
       services.AddTransient<IPasswordHasher<ApplicationUser>, LegacyPasswordHasher>();
       services.AddTransient<OidcSeeder>();
@@ -108,7 +121,7 @@ namespace SarData.Auth
       }
       else
       {
-        services.ConfigureApi<IMessagingApi>("messaging", Configuration);
+        services.ConfigureApi<IMessagingApi>("messaging", Configuration, healthChecksBuilder, HealthStatus.Degraded);
       }
 
       services.AddCors(options =>
@@ -125,10 +138,7 @@ namespace SarData.Auth
       });
 
       services.AddMvc()
-        .AddJsonOptions(options =>
-        {
-          options.JsonSerializerOptions.IgnoreNullValues = true;
-        });
+        .AddJsonOptions(options => options.JsonSerializerOptions.Setup());
 
       AddIdentityServer(services, configureDbAction);
       services.AddTransient<IProfileService, MemberProfileService>();
@@ -140,12 +150,35 @@ namespace SarData.Auth
       {
         configuration.RootPath = "frontend/build";
       });
-
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+      app.UseHealthChecks("/_health", new HealthCheckOptions
+      {
+        ResponseWriter = async (context, report) =>
+        {
+          var result = JsonSerializer.Serialize(
+              new HealthResponse
+              {
+                Status = report.Status,
+                Checks = report.Entries.Select(e => {
+                  HealthStatus innerStatus = e.Value.Status;
+                  if (e.Value.Data.TryGetValue("_result", out object statusObj))
+                  {
+                    innerStatus = (HealthStatus)statusObj;
+                  }
+
+                  return new HealthResponse.InnerCheck { Key = e.Key, Status = innerStatus };
+                })
+              },
+              new JsonSerializerOptions().Setup());
+          context.Response.ContentType = MediaTypeNames.Application.Json;
+          await context.Response.WriteAsync(result);
+        }
+      });
+
       using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
       {
         bool needTables = false;
@@ -297,25 +330,25 @@ namespace SarData.Auth
     {
       if (!string.IsNullOrWhiteSpace(Configuration["auth:external:facebook"]))
       {
-        JObject settings = JsonConvert.DeserializeObject<JObject>(Configuration["auth:external:facebook"]);
+        JsonElement settings = JsonSerializer.Deserialize<JsonElement>(Configuration["auth:external:facebook"]);
         authBuilder.AddFacebook(facebook =>
         {
-          facebook.AppId = settings["appId"].Value<string>();
-          facebook.AppSecret = settings["appSecret"].Value<string>();
+          facebook.AppId = settings.GetString("appId");
+          facebook.AppSecret = settings.GetString("appSecret");
         });
       }
       if (!string.IsNullOrWhiteSpace(Configuration["auth:external:google"]))
       {
-        JObject settings = JsonConvert.DeserializeObject<JObject>(Configuration["auth:external:google"]);
+        JsonElement settings = JsonSerializer.Deserialize<JsonElement>(Configuration["auth:external:google"]);
         authBuilder.AddGoogle(google =>
         {
-          google.ClientId = settings["clientId"].Value<string>();
-          google.ClientSecret = settings["clientSecret"].Value<string>();
+          google.ClientId = settings.GetString("clientId");
+          google.ClientSecret = settings.GetString("clientSecret");
         });
       }
       if (!string.IsNullOrWhiteSpace(Configuration["auth:external:oidc"]))
       {
-        var oidcProviders = JsonConvert.DeserializeObject<OidcConfig[]>(Configuration["auth:external:oidc"]);
+        var oidcProviders = JsonSerializer.Deserialize<OidcConfig[]>(Configuration["auth:external:oidc"], new JsonSerializerOptions().Setup());
         foreach (var provider in oidcProviders)
         {
           authBuilder.AddOpenIdConnect(provider.Id, provider.Caption, oidc =>

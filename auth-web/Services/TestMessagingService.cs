@@ -3,7 +3,8 @@ using System.IO;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using SarData.Common.Apis;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using SarData.Common.Apis.Health;
 using SarData.Common.Apis.Messaging;
 
 namespace SarData.Auth.Services
@@ -33,6 +34,16 @@ namespace SarData.Auth.Services
     {
       File.AppendAllLines(GetPath("logs\\sent-sms.log"), new[] { $"{phone}: {message}" });
       return Task.CompletedTask;
+    }
+
+    public Task<HealthResponse> CheckHealth()
+    {
+      return Task.FromResult(new HealthResponse(HealthStatus.Degraded));
+    }
+
+    public Task<HealthResponse> CheckAuth()
+    {
+      return Task.FromResult(new HealthResponse(HealthStatus.Healthy));
     }
 
     private string GetPath(string path)
