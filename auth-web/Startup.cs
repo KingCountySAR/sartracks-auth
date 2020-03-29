@@ -111,7 +111,7 @@ namespace SarData.Auth
       AddExternalLogins(authSetup);
 
       services.AddSingleton<ITokenClient, LocalTokenClient>();
-      string messagingUrl = Configuration["apis:messaging"];
+      string messagingUrl = Configuration["apis:messaging:url"];
       if (string.IsNullOrWhiteSpace(messagingUrl))
       {
         startupLogger.LogWarning("messaging API not configured. Using test implementation");
