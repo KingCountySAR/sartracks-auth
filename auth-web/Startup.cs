@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net.Mime;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -11,7 +9,6 @@ using IdentityServer4.EntityFramework.DbContexts;
 using IdentityServer4.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -29,8 +26,9 @@ using SarData.Auth.Identity;
 using SarData.Auth.Models;
 using SarData.Auth.Services;
 using SarData.Common.Apis;
-using SarData.Common.Apis.Health;
 using SarData.Common.Apis.Messaging;
+using SarData.Server;
+using SarData.Server.Apis.Health;
 
 namespace SarData.Auth
 {
@@ -155,29 +153,7 @@ namespace SarData.Auth
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-      app.UseHealthChecks("/_health", new HealthCheckOptions
-      {
-        ResponseWriter = async (context, report) =>
-        {
-          var result = JsonSerializer.Serialize(
-              new HealthResponse
-              {
-                Status = report.Status,
-                Checks = report.Entries.Select(e => {
-                  HealthStatus innerStatus = e.Value.Status;
-                  if (e.Value.Data.TryGetValue("_result", out object statusObj))
-                  {
-                    innerStatus = (HealthStatus)statusObj;
-                  }
-
-                  return new HealthResponse.InnerCheck { Key = e.Key, Status = innerStatus };
-                })
-              },
-              new JsonSerializerOptions().Setup());
-          context.Response.ContentType = MediaTypeNames.Application.Json;
-          await context.Response.WriteAsync(result);
-        }
-      });
+      app.UseSarHealthChecks<Startup>();
 
       using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
       {

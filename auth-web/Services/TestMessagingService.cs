@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SarData.Common.Apis.Health;
 using SarData.Common.Apis.Messaging;
+using SarData.Server.Apis.Health;
 
 namespace SarData.Auth.Services
 {
@@ -38,12 +39,12 @@ namespace SarData.Auth.Services
 
     public Task<HealthResponse> CheckHealth()
     {
-      return Task.FromResult(new HealthResponse(HealthStatus.Degraded));
+      return Task.FromResult(new HealthResponse(HealthStatusType.Degraded));
     }
 
     public Task<HealthResponse> CheckAuth()
     {
-      return Task.FromResult(new HealthResponse(HealthStatus.Healthy));
+      return Task.FromResult(new HealthResponse(HealthStatusType.Healthy));
     }
 
     private string GetPath(string path)

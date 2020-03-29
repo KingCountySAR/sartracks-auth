@@ -59,6 +59,14 @@
     <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="build_info.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="build_info.json" />
+  </ItemGroup>
+
   <Target Name="SamlBuildState" BeforeTargets="PreBuildEvent">
     <Message Importance="High" Condition="Exists('$(ProjectDir)ComponentSpace.Saml2.dll')" Text="Compiling with SAML libraries" />
     <Message Importance="High" Condition="!Exists('$(ProjectDir)ComponentSpace.Saml2.dll')" Text="Compiling without SAML libraries" />

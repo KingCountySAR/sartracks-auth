@@ -36,6 +36,12 @@ steps:
 
 - script: move $(Build.SourcesDirectory)\sar-tracks\ComponentSpace* $(Build.SourcesDirectory)\auth\auth-web
 
+- powershell: '"`"auth`":`"$(git --git-dir auth/.git rev-parse HEAD)`", `"common`":`"$(git --git-dir common/.git rev-parse HEAD)`"" > auth/auth-web/build_info.json'
+  displayName: "Emit build number"
+  workingDirectory: '$(Build.SourcesDirectory)'
+  failOnStderr: true
+
+
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
