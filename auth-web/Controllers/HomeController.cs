@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
+using IdentityServer4.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -92,6 +95,25 @@ namespace SarData.Auth.Controllers
     {
       await messaging.SendEmail(to, "Test email from auth service", "This is a test mail. I hope it made it through");
       return Content("OK");
+    }
+    [HttpGet("/generatesecret")]
+    public object GenerateSecret([FromQuery] string key)
+    {
+      char[] chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".ToCharArray();
+      StringBuilder sb = new StringBuilder();
+      var randomBytes = new byte[64];
+      new RNGCryptoServiceProvider().GetBytes(randomBytes);
+      for (int i=0; i<64;i++)
+      {
+        sb.Append(chars[randomBytes[i] % chars.Length]);
+      }
+
+      var secret = key ?? sb.ToString();
+      return new
+      {
+        Secret = secret,
+        Hash = secret.Sha256()
+      };
     }
   }
 }
