@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -19,6 +20,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SarData.Auth.Data;
@@ -219,6 +221,15 @@ namespace SarData.Auth
         innerApp.UseEndpoints(endpoints =>
         {
           endpoints.MapControllers();
+          endpoints.MapGet("/.well-known/acme-challenge/{name}", async context =>
+          {
+            string folder = Path.GetFullPath(Path.Combine(Configuration["local_files"] ?? ".", "letsencrypt", ".well-known", "acme-challenge"));
+            string name = Path.GetFullPath(Path.Combine(folder, context.Request.RouteValues["name"].ToString()));
+            // Don't trust the user supplied file not to jump out of the directory. Make sure it exists in the acme-challenge directory.
+            string requestedPath = Directory.GetFiles(folder).FirstOrDefault(f => f.Equals(name));
+            context.Response.StatusCode = requestedPath == null ? 404 : 200;
+            await context.Response.WriteAsync(requestedPath == null ? "Not here" : await File.ReadAllTextAsync(requestedPath));
+          });
         });
 
         innerApp.UseSpa(spa =>
