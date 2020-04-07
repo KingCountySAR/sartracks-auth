@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SarData.Auth.Data;
@@ -209,6 +210,13 @@ namespace SarData.Auth
 
         innerApp.UseCookiePolicy();
         innerApp.UseStaticFiles();
+        if (Directory.Exists("d:\\home\\site\\letsencrypt") {
+          innerApp.UseStaticFiles(new StaticFileOptions
+          {
+            FileProvider = new PhysicalFileProvider("d:\\home\\site\\letsencrypt\\.well-known\\acme-challenge"),
+            RequestPath = "/.well-known/acme-challenge"
+          });
+        }
         innerApp.UseSpaStaticFiles();
 
         innerApp.UseRouting();
