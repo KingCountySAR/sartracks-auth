@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using IdentityServer4.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SarData.Auth.Data;
 using SarData.Auth.Models;
+using SarData.Common.Apis.Health;
 using SarData.Common.Apis.Messaging;
 
 namespace SarData.Auth.Controllers
@@ -25,19 +27,12 @@ namespace SarData.Auth.Controllers
       this.db = db;
     }
 
-    //[HttpGet("/")]
-    //public async Task<IActionResult> Index()
-    //{
-    //  if (User.Identity.IsAuthenticated)
-    //  {
-    //    string userId = User.FindFirst("sub").Value;
-    //    var userOrgs = await db.Users.Where(f => f.Id == userId).SelectMany(f => f.CustomOrganizations).Select(f => f.OrganizationId).ToListAsync();
-    //    var apps = await db.Applications.Where(f => f.Organizations.Count == 0 || f.Organizations.Any(g => userOrgs.Contains(g.OrganizationId))).ToListAsync();
-    //    ViewData["apps"] = apps;
-    //    return View();
-    //  }
-    //  return View();
-    //}
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpGet("/_health/auth")]
+    public HealthResponse Index()
+    {
+      return new HealthResponse(HealthStatusType.Healthy);
+    }
 
     public IActionResult Error()
     {
