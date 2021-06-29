@@ -12,6 +12,9 @@ namespace SarData.Auth.Data
     [MaxLength(100)]
     public string MemberId { get; set; }
 
+    [MaxLength(20)]
+    public string D4HId { get; set; }
+
     [JsonIgnore]
     public bool IsMember { get { return !string.IsNullOrEmpty(MemberId); } }
 

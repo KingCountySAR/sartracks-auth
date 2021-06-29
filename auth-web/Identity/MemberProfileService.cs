@@ -23,6 +23,10 @@ namespace SarData.Auth.Identity
       {
         context.IssuedClaims.Add(new Claim("memberId", user.MemberId));
       }
+      if (!string.IsNullOrWhiteSpace(user.D4HId))
+      {
+        context.IssuedClaims.Add(new Claim("d4hId", user.D4HId));
+      }
     }
   }
 }
